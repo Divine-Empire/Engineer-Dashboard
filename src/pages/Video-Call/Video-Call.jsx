@@ -207,8 +207,8 @@ export default function VideoCall() {
           <button
             onClick={() => { setActiveTab('pending'); }}
             className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${activeTab === 'pending'
-                ? 'bg-indigo-600 text-white shadow-sm'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+              ? 'bg-indigo-600 text-white shadow-sm'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
               }`}
           >
             Pending ({sales.filter(t => t.actual2 === "" && (role !== "user" || t.CREName === userName) && (role !== "engineer" || t.engineerAssign === userName)).length})
@@ -216,8 +216,8 @@ export default function VideoCall() {
           <button
             onClick={() => { setActiveTab('history'); }}
             className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${activeTab === 'history'
-                ? 'bg-indigo-600 text-white shadow-sm'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+              ? 'bg-indigo-600 text-white shadow-sm'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
               }`}
           >
             History ({sales.filter(t => t.actual2 !== "" && (role !== "user" || t.CREName === userName) && (role !== "engineer" || t.engineerAssign === userName)).length})
@@ -812,8 +812,8 @@ function SolutionModal({ isOpen, onClose, sale, onSave, masterData }) {
                       onClick={canGenerateOtp(sale.ticketId) ? handleResendOTP : null}
                       disabled={!canGenerateOtp(sale.ticketId) || isResending}
                       className={`w-full py-2.5 px-4 text-xs font-bold text-white rounded-xl shadow-sm transition-all ${canGenerateOtp(sale.ticketId)
-                          ? "bg-indigo-600 hover:bg-indigo-700 active:scale-95"
-                          : "bg-slate-350 cursor-not-allowed"
+                        ? "bg-indigo-600 hover:bg-indigo-700 active:scale-95"
+                        : "bg-slate-350 cursor-not-allowed"
                         }`}
                     >
                       {isResending ? "Sending OTP..." : "Send OTP"}
@@ -868,8 +868,8 @@ function SolutionModal({ isOpen, onClose, sale, onSave, masterData }) {
             type="submit"
             disabled={submitting}
             className={`px-5 py-2.5 text-xs font-bold text-white rounded-xl transition-all shadow-sm ${isCancelled
-                ? "bg-rose-600 hover:bg-rose-700 disabled:bg-rose-450"
-                : "bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-450"
+              ? "bg-rose-600 hover:bg-rose-700 disabled:bg-rose-450"
+              : "bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-450"
               }`}
           >
             {submitting ? <>

@@ -49,6 +49,8 @@ export default function RepairStatus() {
             clientName: String(row[17] || "").trim(),
             phoneNumber: String(row[18] || "").trim(),
             companyName: String(row[16] || "").trim(),
+            machineName: String(row[22] || "").trim(),   // col-W
+            mentionIssue: String(row[24] || "").trim(),  // col-Y
             category: String(row[23] || "").trim(),
             serviceLocation: String(row[25] || "").trim(),
             planned: String(row[141] || "").trim(), // col-EL
@@ -174,8 +176,9 @@ export default function RepairStatus() {
                   'Date',
                   'Client Name',
                   'Company Name',
+                  'Machine Name',
+                  'Mention Issue',
                   'Service Location',
-                  'Planned Date',
                   'Remarks'
                 ]
               : [
@@ -183,9 +186,9 @@ export default function RepairStatus() {
                   'Date',
                   'Client Name',
                   'Company Name',
+                  'Machine Name',
+                  'Mention Issue',
                   'Service Location',
-                  'Planned Date',
-                  'Actual Date',
                   'Repair Status',
                   'Engineer Name',
                   'Remarks'
@@ -228,10 +231,13 @@ export default function RepairStatus() {
                     {ticket.companyName}
                   </td>
                   <td className="px-5 py-3.5 text-xs text-slate-600">
-                    {ticket.serviceLocation}
+                    {ticket.machineName || "-"}
                   </td>
-                  <td className="px-5 py-3.5 text-xs text-slate-600 whitespace-nowrap">
-                    {formatDate(ticket.planned)}
+                  <td className="px-5 py-3.5 text-xs text-slate-600">
+                    {ticket.mentionIssue || "-"}
+                  </td>
+                  <td className="px-5 py-3.5 text-xs text-slate-600">
+                    {ticket.serviceLocation}
                   </td>
                   <td className="px-5 py-3.5 text-xs text-slate-500 max-w-[180px] truncate" title={ticket.remarks}>
                     {ticket.remarks || "-"}
@@ -256,13 +262,13 @@ export default function RepairStatus() {
                     {ticket.companyName}
                   </td>
                   <td className="px-5 py-3.5 text-xs text-slate-600">
+                    {ticket.machineName || "-"}
+                  </td>
+                  <td className="px-5 py-3.5 text-xs text-slate-600">
+                    {ticket.mentionIssue || "-"}
+                  </td>
+                  <td className="px-5 py-3.5 text-xs text-slate-600">
                     {ticket.serviceLocation}
-                  </td>
-                  <td className="px-5 py-3.5 text-xs text-slate-600 whitespace-nowrap">
-                    {formatDate(ticket.planned)}
-                  </td>
-                  <td className="px-5 py-3.5 text-xs text-slate-600 whitespace-nowrap">
-                    {formatDate(ticket.actual)}
                   </td>
                   <td className="px-5 py-3.5 text-xs">
                     <span className={`px-2.5 py-0.5 rounded-full font-semibold border text-[11px] ${

@@ -34,9 +34,9 @@ export default function TableWrapper({ headers, data, renderRow, loading, emptyM
             ) : (
               <tr>
                 <td colSpan={headers.length} className="px-5 py-14 text-center">
-                  <p className="text-slate-400 font-medium text-sm">
+                  <div className="text-slate-400 font-medium text-sm">
                     {emptyMessage || 'No records found'}
-                  </p>
+                  </div>
                 </td>
               </tr>
             )}

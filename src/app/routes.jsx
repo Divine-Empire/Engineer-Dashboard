@@ -6,6 +6,7 @@ import Dashboard from '../pages/dashboard/Dashboard';
 import VideoCall from '../pages/Video-Call/Video-Call';
 import MaterialTesting from '../pages/Material-Testing/MaterialTesting';
 import RepairStatus from '../pages/Repair-Status/repair-status';
+import ServiceInstallation from '../pages/service-installation/service-installation';
 
 export default function AppRoutes() {
 
@@ -23,6 +24,7 @@ export default function AppRoutes() {
           <Route path="/video-call" element={<VideoCall />} />
           <Route path="/material-testing" element={<MaterialTesting />} />
           <Route path="/repair-status" element={<RepairStatus />} />
+          <Route path="/service-installation" element={<ServiceInstallation />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

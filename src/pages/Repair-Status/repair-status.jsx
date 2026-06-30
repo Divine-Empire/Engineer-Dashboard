@@ -4,7 +4,9 @@ import {
   RefreshCw,
   Wrench,
   Loader2,
-  FileText
+  FileText,
+  Plus,
+  Trash2
 } from 'lucide-react';
 import TableWrapper from '../../components/TableWrapper';
 import ModalWrapper from '../../components/ModalWrapper';
@@ -13,6 +15,14 @@ import toast from 'react-hot-toast';
 
 const sheet_url = import.meta.env.VITE_SERVICE_SHEET_API;
 const Sheet_Id = import.meta.env.VITE_GOOGLE_SHEET_ID || "1teE4IIdCw7qnQvm_W7xAPgmGgpU13dtYw6y5ui01HHc";
+const IMAGE_FOLDER_ID = "1UNp2t8AICREh-EB6trfzUCpebmi2mTFJ";
+
+const toBase64 = (file) => new Promise((resolve, reject) => {
+  const reader = new FileReader();
+  reader.readAsDataURL(file);
+  reader.onload = () => resolve(reader.result);
+  reader.onerror = error => reject(error);
+});
 
 const formatDateTime = (date) => {
   const d = new Date(date);
@@ -311,25 +321,90 @@ function ProcessModal({ isOpen, onClose, ticket, onSave, engineerList }) {
   const [engineerName, setEngineerName] = useState('');
   const [remarks, setRemarks] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [itemsList, setItemsList] = useState([]);
+  const [imageFile, setImageFile] = useState(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+
+  const handleAddItem = () => {
+    if (itemsList.length < 10) {
+      setItemsList([...itemsList, { item: "", qty: "" }]);
+    }
+  };
+
+  const handleRemoveItem = (index) => {
+    setItemsList(itemsList.filter((_, idx) => idx !== index));
+  };
+
+  const handleUpdateItem = (index, field, value) => {
+    const updated = itemsList.map((item, idx) => {
+      if (idx === index) {
+        return { ...item, [field]: value };
+      }
+      return item;
+    });
+    setItemsList(updated);
+  };
 
   const inputCls = "block w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all";
   const labelCls = "text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 block";
 
   const isFormValid = useMemo(() => {
     if (!repairStatus) return false;
-    if (repairStatus === "Yes" && !engineerName) return false;
+    if (repairStatus === "Yes") {
+      if (!engineerName) return false;
+      const hasInvalidItem = itemsList.some(item => !item.item.trim() || !item.qty || parseInt(item.qty) <= 0);
+      if (hasInvalidItem) return false;
+    }
     return true;
-  }, [repairStatus, engineerName]);
+  }, [repairStatus, engineerName, itemsList]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
+
+    let imageUrl = "";
+    if (repairStatus === "Yes" && imageFile) {
+      try {
+        setUploadingImage(true);
+        const base64Data = await toBase64(imageFile);
+        const pureBase64 = base64Data.split(',')[1] || base64Data;
+
+        const uploadParams = new URLSearchParams();
+        uploadParams.append("action", "uploadFile");
+        uploadParams.append("base64Data", pureBase64);
+        uploadParams.append("fileName", `repair_${ticket.ticketId}_${imageFile.name}`);
+        uploadParams.append("mimeType", imageFile.type);
+        uploadParams.append("folderId", IMAGE_FOLDER_ID);
+
+        const uploadRes = await fetch(sheet_url, {
+          method: "POST",
+          body: uploadParams
+        });
+        const uploadJson = await uploadRes.json();
+        if (uploadJson.success) {
+          imageUrl = uploadJson.fileUrl || "";
+        } else {
+          throw new Error(uploadJson.error || "Failed to upload image to Google Drive");
+        }
+      } catch (error) {
+        console.error(error);
+        toast.error(`Image upload failed: ${error.message || "Unknown error"}`);
+        setSubmitting(false);
+        setUploadingImage(false);
+        return;
+      } finally {
+        setUploadingImage(false);
+      }
+    }
 
     const columnData = {
       EM: formatDateTime(new Date()), // Actual Date/Time
       EN: repairStatus,               // Yes / No
       EO: repairStatus === "Yes" ? engineerName : "", // Engineer Name
       EP: remarks || "",              // Remarks
+      EQ: repairStatus === "Yes" && itemsList.length > 0 ? itemsList.map(i => i.item.trim()).join(", ") : "", // Items (Col EQ)
+      ER: repairStatus === "Yes" && itemsList.length > 0 ? itemsList.map(i => i.qty.toString().trim()).join(", ") : "", // Qty (Col ER)
+      ES: repairStatus === "Yes" ? imageUrl : "", // Image Link (Col ES)
     };
 
     try {
@@ -429,6 +504,87 @@ function ProcessModal({ isOpen, onClose, ticket, onSave, engineerList }) {
           </div>
         )}
 
+        {/* Dynamic Items Table (Repair Status Yes) */}
+        {repairStatus === "Yes" && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <label className={labelCls}>Repair Parts/Items</label>
+              {itemsList.length < 10 && (
+                <button
+                  type="button"
+                  onClick={handleAddItem}
+                  className="text-xs font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-lg transition-colors border border-indigo-100"
+                >
+                  <Plus size={13} /> Add Row
+                </button>
+              )}
+            </div>
+
+            {itemsList.length > 0 ? (
+              <div className="space-y-2 border border-slate-150 p-3 rounded-xl bg-slate-50/50 max-h-56 overflow-y-auto pr-1">
+                {itemsList.map((itemRow, idx) => (
+                  <div key={idx} className="flex gap-2 items-center">
+                    <div className="flex-1">
+                      <input
+                        type="text"
+                        placeholder="Item name..."
+                        value={itemRow.item}
+                        onChange={(e) => handleUpdateItem(idx, "item", e.target.value)}
+                        className={inputCls}
+                        required
+                      />
+                    </div>
+                    <div className="w-20">
+                      <input
+                        type="number"
+                        placeholder="Qty"
+                        min="1"
+                        value={itemRow.qty}
+                        onChange={(e) => handleUpdateItem(idx, "qty", e.target.value)}
+                        className={inputCls}
+                        required
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveItem(idx)}
+                      className="p-2 text-rose-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors flex-shrink-0"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-4 border border-dashed border-slate-200 rounded-xl bg-slate-50/30">
+                <span className="text-[11px] text-slate-400">No parts or items added yet (optional)</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Single Image Upload Field (Repair Status Yes) */}
+        {repairStatus === "Yes" && (
+          <div>
+            <label className={labelCls}>Repair Proof Image</label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                if (e.target.files && e.target.files[0]) {
+                  setImageFile(e.target.files[0]);
+                }
+              }}
+              className="block w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 border border-slate-200 rounded-xl bg-slate-50/50 p-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all cursor-pointer"
+            />
+            {imageFile && (
+              <p className="mt-1 text-[10px] text-slate-500 font-medium truncate">
+                Selected: {imageFile.name} ({(imageFile.size / 1024 / 1024).toFixed(2)} MB)
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Remarks textarea */}
         <div>
           <label className={labelCls}>Remarks</label>
@@ -452,10 +608,15 @@ function ProcessModal({ isOpen, onClose, ticket, onSave, engineerList }) {
           </button>
           <button
             type="submit"
-            disabled={submitting || !isFormValid}
+            disabled={submitting || uploadingImage || !isFormValid}
             className="px-6 py-2.5 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5"
           >
-            {submitting ? (
+            {uploadingImage ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Uploading Image...</span>
+              </>
+            ) : submitting ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
                 <span>Saving...</span>

@@ -11,7 +11,8 @@ import {
   Wallet,
   Phone,
   Handshake,
-  Wrench
+  Wrench,
+  ClipboardCheck
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 
@@ -29,6 +30,7 @@ const Sidebar = ({ isOpen, onClose }) => {
     { path: '/video-call', icon: Phone,   label: 'Video Call' },
     { path: '/material-testing', icon: Handshake,   label: 'Material Testing' },
     { path: '/repair-status', icon: Wrench,   label: 'Repair Status' },
+    { path: '/service-installation', icon: ClipboardCheck,   label: 'Service Installation' },
     // { path: '/tally',       icon: GitCompare,   label: 'Tally' },
     // { path: '/campaigns',   icon: Megaphone,    label: 'Campaigns' },
     // { path: '/settings',    icon: Settings,     label: 'Settings' },
@@ -39,6 +41,7 @@ const Sidebar = ({ isOpen, onClose }) => {
     { path: '/video-call', icon: Phone,   label: 'Video Call' },
     { path: '/material-testing', icon: Handshake,   label: 'Material Testing' },
     { path: '/repair-status', icon: Wrench,   label: 'Repair Status' },
+    { path: '/service-installation', icon: ClipboardCheck,   label: 'Service Installation' },
     // { path: '/tally',       icon: GitCompare,   label: 'Tally' },
     // { path: '/campaigns',   icon: Megaphone,    label: 'Campaigns' },
   ];

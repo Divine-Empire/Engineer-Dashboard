@@ -12,6 +12,7 @@ import TableWrapper from '../../components/TableWrapper';
 import ModalWrapper from '../../components/ModalWrapper';
 import formatDate from '../../utils/formatDate';
 import toast from 'react-hot-toast';
+import { useAuthStore } from '../../store/authStore';
 
 const sheet_url = import.meta.env.VITE_SERVICE_SHEET_API;
 const Sheet_Id = import.meta.env.VITE_GOOGLE_SHEET_ID || "1teE4IIdCw7qnQvm_W7xAPgmGgpU13dtYw6y5ui01HHc";
@@ -42,6 +43,7 @@ export default function RepairStatus() {
   const [fetchLoading, setFetchLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTicket, setSelectedTicket] = useState(null);
+  const { user } = useAuthStore();
 
   const loadTickets = async () => {
     setFetchLoading(true);
@@ -68,8 +70,18 @@ export default function RepairStatus() {
             repairStatus: String(row[143] || "").trim(), // col-EN
             engineerName: String(row[144] || "").trim(), // col-EO
             remarks: String(row[145] || "").trim(),      // col-EP
+            assignedEngineer: String(row[69] || "").trim(), // col-BR (index 69)
           }));
-        setTickets(allTickets);
+
+        // Apply RBAC: if engineer, only see their assigned tickets
+        const filteredByRole = user?.role === 'ENGINEER'
+          ? allTickets.filter(t =>
+              t.assignedEngineer.toLowerCase() === user.name.toLowerCase() ||
+              t.assignedEngineer.toLowerCase() === user.id.toLowerCase()
+            )
+          : allTickets;
+
+        setTickets(filteredByRole);
       }
     } catch (error) {
       console.error("Error loading Ticket_Enquiry data:", error);

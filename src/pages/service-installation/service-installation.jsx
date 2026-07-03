@@ -8,6 +8,7 @@ import TableWrapper from '../../components/TableWrapper';
 import ModalWrapper from '../../components/ModalWrapper';
 import formatDate from '../../utils/formatDate';
 import toast from 'react-hot-toast';
+import { useAuthStore } from '../../store/authStore';
 
 const sheet_url = import.meta.env.VITE_SERVICE_SHEET_API;
 const Sheet_Id = import.meta.env.VITE_GOOGLE_SHEET_ID || "1teE4IIdCw7qnQvm_W7xAPgmGgpU13dtYw6y5ui01HHc";
@@ -30,6 +31,7 @@ export default function ServiceInstallation() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { user } = useAuthStore();
 
   const loadItems = async () => {
     setFetchLoading(true);
@@ -50,12 +52,22 @@ export default function ServiceInstallation() {
             serial: String(row[8] || "").trim(),
             siNo: String(row[9] || "").trim(),
             invoiceNo: String(row[11] || "").trim(),
+            assignedEngineer: String(row[19] || "").trim(), // col-T (index 19)
             planned: String(row[23] || "").trim(),
             actual: String(row[24] || "").trim(),
             remarks: String(row[26] || "").trim(),
           }))
           .filter(item => item.siNo !== "");
-        setItems(allItems);
+
+        // Apply RBAC: if engineer, only see their assigned records
+        const filteredByRole = user?.role === 'ENGINEER'
+          ? allItems.filter(item =>
+              item.assignedEngineer.toLowerCase() === user.name.toLowerCase() ||
+              item.assignedEngineer.toLowerCase() === user.id.toLowerCase()
+            )
+          : allItems;
+
+        setItems(filteredByRole);
       }
     } catch (error) {
       console.error("Error loading Service-Installation data:", error);

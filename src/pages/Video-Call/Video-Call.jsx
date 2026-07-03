@@ -4,11 +4,41 @@ import {
   ChevronLeft,
   ChevronRight,
   Trash2,
+  SlidersHorizontal,
+  ChevronDown,
 } from 'lucide-react';
 import TableWrapper from '../../components/TableWrapper';
 import ModalWrapper from '../../components/ModalWrapper';
 import formatDate from '../../utils/formatDate';
 import toast from 'react-hot-toast';
+
+const INITIAL_COLUMNS = [
+  'Ticket-ID',
+  'Company Name',
+  'Client Name',
+  'Phone Number',
+  'Machine Name',
+  'Mention Issue',
+];
+
+const ALL_COLUMNS = [
+  'Ticket-ID',
+  'Company Name',
+  'Client Name',
+  'Phone Number',
+  'Machine Name',
+  'Mention Issue',
+  'Date',
+  'Source of enquiry',
+  'Call type',
+  'Enquiry Receiver Name',
+  'Client Type',
+  'GST Address',
+  'Site Address',
+  'GST No.',
+  'Category',
+  'Service Location',
+];
 
 const sheet_url = import.meta.env.VITE_SERVICE_SHEET_API;
 const Sheet_Id = import.meta.env.VITE_GOOGLE_SHEET_ID;
@@ -32,6 +62,34 @@ export default function VideoCall() {
   const [selectedSale, setSelectedSale] = useState(null); // the selected ticket for the modal
   const [fetchLoading, setFetchLoading] = useState(false);
   const [masterData, setMasterData] = useState({});
+  const [selectedColumns, setSelectedColumns] = useState(INITIAL_COLUMNS);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  const handleColumnToggle = (colName) => {
+    setSelectedColumns((prev) => {
+      if (prev.includes(colName)) {
+        return prev.filter((col) => col !== colName);
+      } else {
+        return [...prev, colName];
+      }
+    });
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (isDropdownOpen && !event.target.closest('.columns-dropdown-container')) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isDropdownOpen]);
+
+  const activeColumns = useMemo(() => {
+    return ALL_COLUMNS.filter(col => selectedColumns.includes(col));
+  }, [selectedColumns]);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedLocation, setSelectedLocation] = useState('all');
 
@@ -261,31 +319,51 @@ export default function VideoCall() {
               className="block w-full pl-8.5 pr-3 py-1.5 text-xs bg-slate-50/50 border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:bg-white transition-all pl-10"
             />
           </div>
+
+          {/* Columns Dropdown */}
+          <div className="relative columns-dropdown-container">
+            <button
+              type="button"
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-slate-50/50 hover:bg-slate-100/75 border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-all font-bold h-9 cursor-pointer shadow-sm select-none"
+            >
+              <SlidersHorizontal className="h-3.5 w-3.5 text-slate-500" />
+              <span>Columns</span>
+              <ChevronDown className={`h-3.5 w-3.5 text-slate-400 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {isDropdownOpen && (
+              <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-2 max-h-72 overflow-y-auto animate-in fade-in slide-in-from-top-1 duration-150">
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 py-1 border-b border-slate-100 mb-1">
+                  Visible Columns
+                </div>
+                {ALL_COLUMNS.map((col) => {
+                  const isChecked = selectedColumns.includes(col);
+                  return (
+                    <label
+                      key={col}
+                      className="flex items-center gap-2.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg cursor-pointer transition-all text-slate-600 hover:text-slate-950 hover:bg-indigo-50/40 select-none"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => handleColumnToggle(col)}
+                        className="h-3.5 w-3.5 text-indigo-600 focus:ring-indigo-500 border-slate-300 rounded cursor-pointer transition-colors"
+                      />
+                      <span>{col}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Table */}
       <div className="flex-1 min-h-0 flex flex-col justify-between gap-4">
         <TableWrapper
-          headers={[
-            'Action',
-            'Date',
-            'Ticket-ID',
-            'Source of enquiry',
-            'Call type',
-            'Enquiry Receiver Name',
-            'Client Type',
-            'Company Name',
-            'Client Name',
-            'Phone Number',
-            'GST Address',
-            'Site Address',
-            'GST No.',
-            'Machine Name',
-            'Category',
-            'Mention Issue',
-            'Service Location'
-          ]}
+          headers={['Action', ...activeColumns]}
           data={filteredSales}
           emptyMessage={fetchLoading ? <>
             {/* spinner */}
@@ -310,54 +388,108 @@ export default function VideoCall() {
                   </span>
                 )}
               </td>
-              <td className="px-5 py-3.5 whitespace-nowrap text-xs text-slate-600">
-                {formatDate(ticket.timeStemp)}
-              </td>
-              <td className="px-5 py-3.5 whitespace-nowrap">
-                <span className="text-xs font-mono font-bold bg-slate-100 px-1.5 py-0.5 rounded text-slate-700">{ticket.ticketId}</span>
-              </td>
-              <td className="px-5 py-3.5 text-xs text-slate-600">
-                {ticket.sourceOfEnquiry}
-              </td>
-              <td className="px-5 py-3.5 text-xs text-slate-600">
-                {ticket.callType}
-              </td>
-              <td className="px-5 py-3.5 text-xs text-slate-600">
-                {ticket.enquiryReceiverName}
-              </td>
-              <td className="px-5 py-3.5 text-xs text-slate-600">
-                {ticket.clientType}
-              </td>
-              <td className="px-5 py-3.5 text-xs text-slate-600">
-                {ticket.companyName}
-              </td>
-              <td className="px-5 py-3.5 text-xs font-bold text-slate-800">
-                {ticket.clientName}
-              </td>
-              <td className="px-5 py-3.5 text-xs text-slate-600 whitespace-nowrap">
-                {ticket.phoneNumber}
-              </td>
-              <td className="px-5 py-3.5 text-xs text-slate-600">
-                {ticket.gstAddress}
-              </td>
-              <td className="px-5 py-3.5 text-xs text-slate-600">
-                {ticket.siteAddress}
-              </td>
-              <td className="px-5 py-3.5 text-xs text-slate-600">
-                {ticket.gstNo}
-              </td>
-              <td className="px-5 py-3.5 text-xs text-slate-600">
-                {ticket.machineName}
-              </td>
-              <td className="px-5 py-3.5 text-xs text-slate-600">
-                {ticket.category}
-              </td>
-              <td className="px-5 py-3.5 text-xs text-slate-600 max-w-[200px] truncate" title={ticket.mentionIssue}>
-                {ticket.mentionIssue}
-              </td>
-              <td className="px-5 py-3.5 text-xs text-slate-600">
-                {ticket.serviceLocation}
-              </td>
+              {activeColumns.map((colName) => {
+                switch (colName) {
+                  case 'Date':
+                    return (
+                      <td key="Date" className="px-5 py-3.5 whitespace-nowrap text-xs text-slate-600">
+                        {formatDate(ticket.timeStemp)}
+                      </td>
+                    );
+                  case 'Ticket-ID':
+                    return (
+                      <td key="Ticket-ID" className="px-5 py-3.5 whitespace-nowrap">
+                        <span className="text-xs font-mono font-bold bg-slate-100 px-1.5 py-0.5 rounded text-slate-700">{ticket.ticketId}</span>
+                      </td>
+                    );
+                  case 'Source of enquiry':
+                    return (
+                      <td key="Source of enquiry" className="px-5 py-3.5 text-xs text-slate-600">
+                        {ticket.sourceOfEnquiry}
+                      </td>
+                    );
+                  case 'Call type':
+                    return (
+                      <td key="Call type" className="px-5 py-3.5 text-xs text-slate-600">
+                        {ticket.callType}
+                      </td>
+                    );
+                  case 'Enquiry Receiver Name':
+                    return (
+                      <td key="Enquiry Receiver Name" className="px-5 py-3.5 text-xs text-slate-600">
+                        {ticket.enquiryReceiverName}
+                      </td>
+                    );
+                  case 'Client Type':
+                    return (
+                      <td key="Client Type" className="px-5 py-3.5 text-xs text-slate-600">
+                        {ticket.clientType}
+                      </td>
+                    );
+                  case 'Company Name':
+                    return (
+                      <td key="Company Name" className="px-5 py-3.5 text-xs text-slate-600">
+                        {ticket.companyName}
+                      </td>
+                    );
+                  case 'Client Name':
+                    return (
+                      <td key="Client Name" className="px-5 py-3.5 text-xs font-bold text-slate-800">
+                        {ticket.clientName}
+                      </td>
+                    );
+                  case 'Phone Number':
+                    return (
+                      <td key="Phone Number" className="px-5 py-3.5 text-xs text-slate-600 whitespace-nowrap">
+                        {ticket.phoneNumber}
+                      </td>
+                    );
+                  case 'GST Address':
+                    return (
+                      <td key="GST Address" className="px-5 py-3.5 text-xs text-slate-600">
+                        {ticket.gstAddress}
+                      </td>
+                    );
+                  case 'Site Address':
+                    return (
+                      <td key="Site Address" className="px-5 py-3.5 text-xs text-slate-600">
+                        {ticket.siteAddress}
+                      </td>
+                    );
+                  case 'GST No.':
+                    return (
+                      <td key="GST No." className="px-5 py-3.5 text-xs text-slate-600">
+                        {ticket.gstNo}
+                      </td>
+                    );
+                  case 'Machine Name':
+                    return (
+                      <td key="Machine Name" className="px-5 py-3.5 text-xs text-slate-600">
+                        {ticket.machineName}
+                      </td>
+                    );
+                  case 'Category':
+                    return (
+                      <td key="Category" className="px-5 py-3.5 text-xs text-slate-600">
+                        {ticket.category}
+                      </td>
+                    );
+                  case 'Mention Issue':
+                    return (
+                      <td key="Mention Issue" className="px-5 py-3.5 text-xs text-slate-600 max-w-[200px] truncate" title={ticket.mentionIssue}>
+                        {ticket.mentionIssue}
+                      </td>
+                    );
+                  case 'Service Location':
+                    return (
+                      <td key="Service Location" className="px-5 py-3.5 text-xs text-slate-600">
+                        {ticket.serviceLocation}
+                      </td>
+                    );
+                  default:
+                    return null;
+                }
+              })}
             </tr>
           )}
         />

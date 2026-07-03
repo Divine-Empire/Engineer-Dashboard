@@ -6,6 +6,8 @@ import { useAuthStore } from '../../store/authStore';
 import { getUsers } from '../../utils/storageManager';
 import botivateLogoB from '../../Assets/divine-logo.svg';
 
+const sheet_url = import.meta.env.VITE_SERVICE_SHEET_API;
+
 const Login = () => {
   const [id, setId] = useState('');
   const [password, setPassword] = useState('');
@@ -19,9 +21,25 @@ const Login = () => {
     setSubmitting(true);
 
     try {
-      const users = getUsers();
+      const response = await fetch(`${sheet_url}?sheet=Login Master`);
+      const json = await response.json();
+
+      if (!json.success || !Array.isArray(json.data)) {
+        toast.error('Failed to load login records');
+        setSubmitting(false);
+        return;
+      }
+
+      // Map rows. Headers are in row 0, data starts from index 1.
+      const users = json.data.slice(1).map(row => ({
+        name: String(row[0] || "").trim(),
+        id: String(row[1] || "").trim(),
+        password: String(row[2] || "").trim(),
+        role: String(row[3] || "").trim().toLowerCase(),
+      }));
+
       const matchedUser = users.find(
-        (u) => u.id === id && u.password === password
+        (u) => u.id.toLowerCase() === id.trim().toLowerCase() && u.password === password
       );
 
       if (!matchedUser) {
@@ -30,8 +48,27 @@ const Login = () => {
         return;
       }
 
+      // Validate role: engineers and admins are allowed; 'user' role is not.
+      if (matchedUser.role === 'user') {
+        toast.error('Access denied: User role is not authorized');
+        setSubmitting(false);
+        return;
+      }
+
+      // Map role to uppercase standard for the app ('ADMIN' / 'ENGINEER')
+      const finalUser = {
+        id: matchedUser.id,
+        name: matchedUser.name,
+        role: matchedUser.role === 'admin' ? 'ADMIN' : 'ENGINEER',
+      };
+
       toast.success('Login successful!');
-      login(matchedUser);
+      login(finalUser);
+
+      // Set compatibility keys in localstorage
+      localStorage.setItem("currentUsername", finalUser.name);
+      localStorage.setItem("o2d-auth-storage", JSON.stringify({ state: { user: { role: finalUser.role.toLowerCase() } } }));
+
       navigate("/", { replace: true });
     } catch (err) {
       console.error(err);
@@ -43,16 +80,6 @@ const Login = () => {
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
-  };
-
-  const handleDemoCredential = (userId) => {
-    if (userId === 'admin') {
-      setId('admin');
-      setPassword('admin123');
-    } else if (userId === 'user') {
-      setId('user');
-      setPassword('user123');
-    }
   };
 
   return (
@@ -152,38 +179,7 @@ const Login = () => {
             </button>
           </form>
 
-          {/* Divider */}
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-200"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500 font-semibold">Demo Credentials</span>
-            </div>
-          </div>
 
-          {/* Demo Credentials */}
-          <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
-            <p className="text-xs font-semibold text-gray-500 text-center mb-3 uppercase tracking-wider">Quick Login Options</p>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => handleDemoCredential('admin')}
-                className="flex flex-col items-center justify-center p-3 bg-white border border-gray-200 hover:border-sky-500 hover:shadow-md hover:bg-sky-50 rounded-lg transition-all group"
-              >
-                <span className="font-bold text-gray-800 text-sm group-hover:text-sky-700">Admin</span>
-                <span className="text-[10px] text-gray-500 font-mono mt-1">ID: admin</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDemoCredential('user')}
-                className="flex flex-col items-center justify-center p-3 bg-white border border-gray-200 hover:border-sky-500 hover:shadow-md hover:bg-sky-50 rounded-lg transition-all group"
-              >
-                <span className="font-bold text-gray-800 text-sm group-hover:text-sky-700">User</span>
-                <span className="text-[10px] text-gray-500 font-mono mt-1">ID: user</span>
-              </button>
-            </div>
-          </div>
         </div>
       </div>
 

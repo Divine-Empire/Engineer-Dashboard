@@ -41,6 +41,15 @@ const formatDateTime = (date) => {
   return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
 };
 
+const getValueByColIndex = (row, colIndex) => {
+  if (!Array.isArray(row)) return "";
+  if (row.length > 0 && Array.isArray(row[0])) {
+    const cell = row.find(c => Array.isArray(c) && c[0] === colIndex);
+    return cell !== undefined && cell !== null ? cell[1] : "";
+  }
+  return row[colIndex] !== undefined && row[colIndex] !== null ? row[colIndex] : "";
+};
+
 function SearchableSrnDropdown({ value, onChange, options, placeholder }) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -138,17 +147,17 @@ export default function MaterialTesting() {
       if (dropJson.success && Array.isArray(dropJson.data)) {
         setQcEngineerList(
           dropJson.data.slice(1)
-            .map((row) => String(row[11] || "").trim())
+            .map((row) => String(getValueByColIndex(row, 11) || "").trim())
             .filter((q) => q !== "")
         );
         setChecklistList(
           dropJson.data.slice(1)
-            .map((row) => String(row[15] || "").trim())
+            .map((row) => String(getValueByColIndex(row, 15) || "").trim())
             .filter((c) => c !== "")
         );
         setRejectTypeList(
           dropJson.data.slice(1)
-            .map((row) => String(row[16] || "").trim())
+            .map((row) => String(getValueByColIndex(row, 16) || "").trim())
             .filter((r) => r !== "")
         );
       }
@@ -158,12 +167,12 @@ export default function MaterialTesting() {
       let pRows = [];
 
       if (partialJson.success && Array.isArray(partialJson.data)) {
-        pRows = partialJson.data.slice(6).filter((r) => r[1] && String(r[1]).trim() !== "");
+        pRows = partialJson.data.slice(6).filter((r) => getValueByColIndex(r, 1) && String(getValueByColIndex(r, 1)).trim() !== "");
         pRows.forEach((r) => {
-          const liftNo = String(r[2] || "").trim().toLowerCase();
+          const liftNo = String(getValueByColIndex(r, 2) || "").trim().toLowerCase();
           if (!liftNo) return;
-          approvedMap.set(liftNo, (approvedMap.get(liftNo) || 0) + (parseFloat(r[6] || "0") || 0));
-          rejectedMap.set(liftNo, (rejectedMap.get(liftNo) || 0) + (parseFloat(r[12] || "0") || 0));
+          approvedMap.set(liftNo, (approvedMap.get(liftNo) || 0) + (parseFloat(getValueByColIndex(r, 6) || "0") || 0));
+          rejectedMap.set(liftNo, (rejectedMap.get(liftNo) || 0) + (parseFloat(getValueByColIndex(r, 12) || "0") || 0));
         });
         setPartialQCRecords(pRows);
       }
@@ -171,17 +180,17 @@ export default function MaterialTesting() {
       if (json.success && Array.isArray(json.data)) {
         const rows = json.data.slice(7)
           .map((row, i) => ({ row, originalIndex: i + 8 }))
-          .filter(({ row }) => row[1] && String(row[1]).trim() !== "")
+          .filter(({ row }) => getValueByColIndex(row, 1) && String(getValueByColIndex(row, 1)).trim() !== "")
           .map(({ row, originalIndex }) => {
-            const indentNo = String(row[1] || "").trim();
-            const liftNo = String(row[2] || "").trim().toLowerCase();
-            const receivedQty = parseFloat(row[25] || "0");
+            const indentNo = String(getValueByColIndex(row, 1) || "").trim();
+            const liftNo = String(getValueByColIndex(row, 2) || "").trim().toLowerCase();
+            const receivedQty = parseFloat(getValueByColIndex(row, 25) || "0");
             const totalApproved = approvedMap.get(liftNo) || 0;
             const totalRejected = rejectedMap.get(liftNo) || 0;
             const pendingQty = Math.max(0, receivedQty - (totalApproved + totalRejected));
 
-            const plan7Str = String(row[61] || "").trim();
-            const completionDate = row[62];
+            const plan7Str = String(getValueByColIndex(row, 61) || "").trim();
+            const completionDate = getValueByColIndex(row, 62);
             const completionStr = String(completionDate || "").trim();
 
             let status = "not_ready";
@@ -199,20 +208,20 @@ export default function MaterialTesting() {
               status,
               data: {
                 indentNumber: indentNo,
-                liftNo: String(row[2] || ""),
-                vendorName: String(row[3] || ""),
-                poNumber: String(row[4] || ""),
-                itemName: String(row[7] || ""),
-                invoiceNumber: String(row[24] || "-"),
-                receivedQty: row[25] || "0",
-                plan7: row[61] || "",
-                actual7: row[62] || "",
+                liftNo: String(getValueByColIndex(row, 2) || ""),
+                vendorName: String(getValueByColIndex(row, 3) || ""),
+                poNumber: String(getValueByColIndex(row, 4) || ""),
+                itemName: String(getValueByColIndex(row, 7) || ""),
+                invoiceNumber: String(getValueByColIndex(row, 24) || "-"),
+                receivedQty: getValueByColIndex(row, 25) || "0",
+                plan7: getValueByColIndex(row, 61) || "",
+                actual7: getValueByColIndex(row, 62) || "",
                 totalApproved,
                 totalRejected,
                 pendingQty,
-                damageQty: row[116] || "0",
-                damageReason: row[117] || "-",
-                damageImage: row[118] || "",
+                damageQty: getValueByColIndex(row, 116) || "0",
+                damageReason: getValueByColIndex(row, 117) || "-",
+                damageImage: getValueByColIndex(row, 118) || "",
               },
             };
           });
@@ -252,10 +261,10 @@ export default function MaterialTesting() {
   const history = useMemo(() => {
     const searchLower = searchTerm.toLowerCase();
     return partialQCRecords
-      .filter(pRow => pRow[1] && String(pRow[1]).trim() !== "")
+      .filter(pRow => getValueByColIndex(pRow, 1) && String(getValueByColIndex(pRow, 1)).trim() !== "")
       .map((pRow, idx) => {
-        const indentNoUpper = String(pRow[1] || "").trim().toUpperCase();
-        const liftNo = String(pRow[2] || "").trim().toLowerCase();
+        const indentNoUpper = String(getValueByColIndex(pRow, 1) || "").trim().toUpperCase();
+        const liftNo = String(getValueByColIndex(pRow, 2) || "").trim().toLowerCase();
         
         const parentRecord = sheetRecords.find(r => 
           String(r.data.liftNo || "").trim().toLowerCase() === liftNo
@@ -272,23 +281,23 @@ export default function MaterialTesting() {
             invoiceNumber: parentData.invoiceNumber || "-",
             itemName: parentData.itemName || "-",
             plan7: parentData.plan7 || "-",
-            actual7: pRow[0] || "-",
-            qcDate: pRow[3] || "-",
-            qcBy: pRow[5] || "-",
-            approvedQty: pRow[6] || "0",
-            rejectedQty: pRow[12] || "0",
-            qcStatus: pRow[4] || "-",
-            remarks: pRow[13] || "-",
+            actual7: getValueByColIndex(pRow, 0) || "-",
+            qcDate: getValueByColIndex(pRow, 3) || "-",
+            qcBy: getValueByColIndex(pRow, 5) || "-",
+            approvedQty: getValueByColIndex(pRow, 6) || "0",
+            rejectedQty: getValueByColIndex(pRow, 12) || "0",
+            qcStatus: getValueByColIndex(pRow, 4) || "-",
+            remarks: getValueByColIndex(pRow, 13) || "-",
             damageQty: parentData.damageQty || "-",
             damageReason: parentData.damageReason || "-",
             damageImage: parentData.damageImage || "",
-            liftNo: pRow[2] || "-",
-            workingCondition: pRow[4] || "-",
-            checklist: pRow[7] || "-",
-            serialNo: pRow[8] || "-",
-            image: pRow[9] || "-",
-            rejectType: pRow[10] || "-",
-            partName: pRow[11] || "-",
+            liftNo: getValueByColIndex(pRow, 2) || "-",
+            workingCondition: getValueByColIndex(pRow, 4) || "-",
+            checklist: getValueByColIndex(pRow, 7) || "-",
+            serialNo: getValueByColIndex(pRow, 8) || "-",
+            image: getValueByColIndex(pRow, 9) || "-",
+            rejectType: getValueByColIndex(pRow, 10) || "-",
+            partName: getValueByColIndex(pRow, 11) || "-",
           },
         };
       })

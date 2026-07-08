@@ -7,6 +7,7 @@ import VideoCall from '../pages/Video-Call/Video-Call';
 import MaterialTesting from '../pages/Material-Testing/MaterialTesting';
 import RepairStatus from '../pages/Repair-Status/repair-status';
 import ServiceInstallation from '../pages/service-installation/service-installation';
+import SiteVisitPlan from '../pages/Planned-Site-Visit/Planned-Site-Visit';
 
 export default function AppRoutes() {
 
@@ -25,6 +26,7 @@ export default function AppRoutes() {
           <Route path="/material-testing" element={<MaterialTesting />} />
           <Route path="/repair-status" element={<RepairStatus />} />
           <Route path="/service-installation" element={<ServiceInstallation />} />
+          <Route path="/planned-site-visit" element={<SiteVisitPlan />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

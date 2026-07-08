@@ -12,7 +12,8 @@ import {
   Phone,
   Handshake,
   Wrench,
-  ClipboardCheck
+  ClipboardCheck,
+  Calendar
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 
@@ -27,10 +28,11 @@ const Sidebar = ({ isOpen, onClose }) => {
 
   const adminMenuItems = [
     { path: '/dashboard',   icon: LayoutGrid,   label: 'Dashboard' },
-    { path: '/video-call', icon: Phone,   label: 'Video Call' },
-    { path: '/material-testing', icon: Handshake,   label: 'Material Testing' },
-    { path: '/repair-status', icon: Wrench,   label: 'Repair Status' },
     { path: '/service-installation', icon: ClipboardCheck,   label: 'Service Installation' },
+    { path: '/video-call', icon: Phone,   label: 'Video Call' },
+    { path: '/repair-status', icon: Wrench,   label: 'Repair Status' },
+    { path: '/material-testing', icon: Handshake,   label: 'Material Testing' },
+    { path: '/planned-site-visit', icon: Calendar,   label: 'Planned Site Visit' },
     // { path: '/tally',       icon: GitCompare,   label: 'Tally' },
     // { path: '/campaigns',   icon: Megaphone,    label: 'Campaigns' },
     // { path: '/settings',    icon: Settings,     label: 'Settings' },
@@ -38,10 +40,11 @@ const Sidebar = ({ isOpen, onClose }) => {
 
   const employeeMenuItems = [
     { path: '/dashboard',   icon: LayoutGrid,   label: 'Dashboard' },
-    { path: '/video-call', icon: Phone,   label: 'Video Call' },
-    { path: '/material-testing', icon: Handshake,   label: 'Material Testing' },
-    { path: '/repair-status', icon: Wrench,   label: 'Repair Status' },
     { path: '/service-installation', icon: ClipboardCheck,   label: 'Service Installation' },
+    { path: '/video-call', icon: Phone,   label: 'Video Call' },
+    { path: '/repair-status', icon: Wrench,   label: 'Repair Status' },
+    { path: '/material-testing', icon: Handshake,   label: 'Material Testing' },
+    { path: '/planned-site-visit', icon: Calendar,   label: 'Planned Site Visit' },
     // { path: '/tally',       icon: GitCompare,   label: 'Tally' },
     // { path: '/campaigns',   icon: Megaphone,    label: 'Campaigns' },
   ];

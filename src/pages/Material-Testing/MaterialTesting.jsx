@@ -265,8 +265,8 @@ export default function MaterialTesting() {
       .map((pRow, idx) => {
         const indentNoUpper = String(getValueByColIndex(pRow, 1) || "").trim().toUpperCase();
         const liftNo = String(getValueByColIndex(pRow, 2) || "").trim().toLowerCase();
-        
-        const parentRecord = sheetRecords.find(r => 
+
+        const parentRecord = sheetRecords.find(r =>
           String(r.data.liftNo || "").trim().toLowerCase() === liftNo
         );
         const parentData = parentRecord?.data ?? {};
@@ -324,21 +324,19 @@ export default function MaterialTesting() {
         <div className="flex border border-slate-250 bg-slate-50/50 p-1 rounded-xl gap-1">
           <button
             onClick={() => { setActiveTab('pending'); }}
-            className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${
-              activeTab === 'pending'
-                ? 'bg-indigo-600 text-white shadow-sm'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
-            }`}
+            className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${activeTab === 'pending'
+              ? 'bg-indigo-600 text-white shadow-sm'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+              }`}
           >
             Pending ({pending.length})
           </button>
           <button
             onClick={() => { setActiveTab('history'); }}
-            className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${
-              activeTab === 'history'
-                ? 'bg-indigo-600 text-white shadow-sm'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
-            }`}
+            className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${activeTab === 'history'
+              ? 'bg-indigo-600 text-white shadow-sm'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+              }`}
           >
             History ({history.length})
           </button>
@@ -372,42 +370,42 @@ export default function MaterialTesting() {
           headers={
             activeTab === 'pending'
               ? [
-                  'Action',
-                  'Indent No.',
-                  'Unit Tracking No.',
-                  'Planned',
-                  'Item',
-                  'Received Qty',
-                  'Approved',
-                  'Rejected',
-                  'Pending Qty',
-                  'Damage Qty',
-                  'Reason',
-                  'Image'
-                ]
+                'Action',
+                'Indent No.',
+                'Unit Tracking No.',
+                'Planned',
+                'Item',
+                'Received Qty',
+                'Approved',
+                'Rejected',
+                'Pending Qty',
+                'Damage Qty',
+                'Reason',
+                'Image'
+              ]
               : [
-                  'Indent No.',
-                  'Lift No.',
-                  'QC-Date',
-                  'Working Condition',
-                  'Checked By',
-                  'Approved Qty',
-                  'Checklist',
-                  'Serial-No',
-                  'Image',
-                  'Reject Type',
-                  'Part-Name',
-                  'Reject Qty',
-                  'Remarks'
-                ]
+                'Indent No.',
+                'Lift No.',
+                'QC-Date',
+                'Working Condition',
+                'Checked By',
+                'Approved Qty',
+                'Checklist',
+                'Serial-No',
+                'Image',
+                'Reject Type',
+                'Part-Name',
+                'Reject Qty',
+                'Remarks'
+              ]
           }
           data={activeRecords}
-          emptyMessage={fetchLoading ? <> 
-          {/* spinner */}
-          <div className="flex items-center justify-center flex-col ">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
-            <p>Loading...</p>
-          </div>
+          emptyMessage={fetchLoading ? <>
+            {/* spinner */}
+            <div className="flex items-center justify-center flex-col ">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
+              <p>Loading...</p>
+            </div>
           </> : "No entries found in this folder."}
           renderRow={(record) => {
             if (activeTab === 'pending') {
@@ -450,13 +448,12 @@ export default function MaterialTesting() {
                   <td className="px-5 py-3.5 text-xs text-slate-600 whitespace-nowrap">{record.data.liftNo}</td>
                   <td className="px-5 py-3.5 text-xs text-slate-600 whitespace-nowrap">{formatDate(record.data.qcDate)}</td>
                   <td className="px-5 py-3.5 text-xs">
-                    <span className={`px-2 py-0.5 rounded-full font-semibold border ${
-                      record.data.workingCondition === "Passed"
-                        ? "bg-emerald-50 text-emerald-700 border-emerald-100"
-                        : record.data.workingCondition === "Rejected"
+                    <span className={`px-2 py-0.5 rounded-full font-semibold border ${record.data.workingCondition === "Passed"
+                      ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                      : record.data.workingCondition === "Rejected"
                         ? "bg-rose-50 text-rose-700 border-rose-200"
                         : "bg-amber-50 text-amber-700 border-amber-100"
-                    }`}>
+                      }`}>
                       {record.data.workingCondition}
                     </span>
                   </td>
@@ -691,7 +688,7 @@ function QCFormModal({ isOpen, onClose, record, onSave, qcEngineerList, checklis
 
   const isFormValid = (() => {
     if (!qcDate || !workingCondition) return false;
-    const isPassed = workingCondition === "Passed" || workingCondition === "Passed but Concern";
+    const isPassed = workingCondition === "Passed" || workingCondition === "Passed but Quality Concern";
     if (isPassed) {
       return !!(
         qcBy &&
@@ -727,7 +724,7 @@ function QCFormModal({ isOpen, onClose, record, onSave, qcEngineerList, checklis
         ? `${qcDateObj.getMonth() + 1}/${qcDateObj.getDate()}/${qcDateObj.getFullYear()}`
         : "";
 
-      const isPassed = workingCondition === "Passed" || workingCondition === "Passed but Concern";
+      const isPassed = workingCondition === "Passed" || workingCondition === "Passed but Quality Concern";
 
       let serialNosStr = "";
       let imageUrlsStr = "";
@@ -907,14 +904,14 @@ function QCFormModal({ isOpen, onClose, record, onSave, qcEngineerList, checklis
             >
               <option value="">Select Condition</option>
               <option value="Passed">Passed</option>
-              <option value="Passed but Concern">Passed but Concern</option>
+              <option value="Passed but Quality Concern">Passed but Quality Concern</option>
               <option value="Rejected">Rejected</option>
             </select>
           </div>
         </div>
 
         {/* Passed condition sections */}
-        {(workingCondition === "Passed" || workingCondition === "Passed but Concern") && (
+        {(workingCondition === "Passed" || workingCondition === "Passed but Quality Concern") && (
           <div className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -1008,11 +1005,10 @@ function QCFormModal({ isOpen, onClose, record, onSave, qcEngineerList, checklis
                           />
                           <label
                             htmlFor={`srn-image-${idx}`}
-                            className={`flex items-center justify-center gap-1.5 px-3 py-2 border rounded-xl cursor-pointer transition-all h-9 text-xs font-semibold ${
-                              entry.image
-                                ? "bg-emerald-50 border-emerald-250 text-emerald-700"
-                                : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
-                            }`}
+                            className={`flex items-center justify-center gap-1.5 px-3 py-2 border rounded-xl cursor-pointer transition-all h-9 text-xs font-semibold ${entry.image
+                              ? "bg-emerald-50 border-emerald-250 text-emerald-700"
+                              : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                              }`}
                           >
                             <FileText size={12} />
                             <span className="truncate max-w-[120px]">{entry.image ? entry.image.name : "Photo"}</span>
@@ -1131,11 +1127,10 @@ function QCFormModal({ isOpen, onClose, record, onSave, qcEngineerList, checklis
                           />
                           <label
                             htmlFor={`reject-srn-image-${idx}`}
-                            className={`flex items-center justify-center gap-1.5 px-3 py-2 border rounded-xl cursor-pointer transition-all h-9 text-xs font-semibold ${
-                              entry.image
-                                ? "bg-emerald-50 border-emerald-250 text-emerald-700"
-                                : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
-                            }`}
+                            className={`flex items-center justify-center gap-1.5 px-3 py-2 border rounded-xl cursor-pointer transition-all h-9 text-xs font-semibold ${entry.image
+                              ? "bg-emerald-50 border-emerald-250 text-emerald-700"
+                              : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                              }`}
                           >
                             <FileText size={12} />
                             <span className="truncate max-w-[120px]">{entry.image ? entry.image.name : "Photo"}</span>
@@ -1166,12 +1161,12 @@ function QCFormModal({ isOpen, onClose, record, onSave, qcEngineerList, checklis
         {/* Remarks / Concern */}
         <div>
           <label className={labelCls}>
-            {workingCondition === "Passed but Concern" ? "Concern Issue" : "Remarks"}
+            {workingCondition === "Passed but Quality Concern" ? "Concern Issue" : "Remarks"}
           </label>
           <textarea
             value={remarks}
             onChange={(e) => setRemarks(e.target.value)}
-            placeholder={workingCondition === "Passed but Concern" ? "Explain concern details..." : "Enter remarks..."}
+            placeholder={workingCondition === "Passed but Quality Concern" ? "Explain concern details..." : "Enter remarks..."}
             rows={3}
             className={`${inputCls} resize-none`}
           />
@@ -1191,10 +1186,10 @@ function QCFormModal({ isOpen, onClose, record, onSave, qcEngineerList, checklis
             disabled={submitting || !isFormValid}
             className="px-6 py-2.5 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl transition-all shadow-sm"
           >
-            {submitting ? 
-            <>
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-            </> : 'Finalize Quality Report'}
+            {submitting ?
+              <>
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+              </> : 'Finalize Quality Report'}
           </button>
         </div>
       </form>

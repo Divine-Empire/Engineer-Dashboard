@@ -149,8 +149,8 @@ export default function Dashboard() {
         return contentType && contentType.includes("application/json");
       };
 
-      if (!checkJsonContentType(videoRes) || !checkJsonContentType(masterRes) || 
-          !checkJsonContentType(materialRes) || !checkJsonContentType(partialRes)) {
+      if (!checkJsonContentType(videoRes) || !checkJsonContentType(masterRes) ||
+        !checkJsonContentType(materialRes) || !checkJsonContentType(partialRes)) {
         throw new Error(
           "Google Apps Script returned HTML instead of JSON. " +
           "This is a redirect issue when logged into multiple Google accounts in the same browser. " +
@@ -385,8 +385,8 @@ export default function Dashboard() {
     let isPendingTADA = false;
 
     // Filter tickets assigned to this engineer
-    const engVisits = siteVisitHistory.filter(ticket => 
-      ticket.engineerAssign && 
+    const engVisits = siteVisitHistory.filter(ticket =>
+      ticket.engineerAssign &&
       String(ticket.engineerAssign).toLowerCase() === String(engineer).toLowerCase()
     );
 
@@ -396,7 +396,7 @@ export default function Dashboard() {
       if (!ticket.dateOfVisit) continue;
       const parsedVisit = parseIST(ticket.dateOfVisit);
       if (!parsedVisit) continue;
-      
+
       const parsedTravel = ticket.travelDate ? parseIST(ticket.travelDate) : null;
       const visitVal = parsedTravel ? (parsedTravel.year * 10000 + (parsedTravel.month + 1) * 100 + parsedTravel.day) : (parsedVisit.year * 10000 + (parsedVisit.month + 1) * 100 + parsedVisit.day);
 
@@ -504,7 +504,7 @@ export default function Dashboard() {
   const chartData = useMemo(() => {
     return engineersList.map((eng) => {
       const { segments, statusText, isPendingTADA } = getTodayAvailability(eng);
-      
+
       let busyHours = 0;
       let pendingHours = 0;
       let freeHours = 0;
@@ -641,8 +641,8 @@ export default function Dashboard() {
                   <td className="px-5 py-3 text-xs text-slate-600 whitespace-nowrap">{ticket.phoneNumber || "-"}</td>
                   <td className="px-5 py-3">
                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${ticket.actual2 === ""
-                        ? "bg-rose-50 text-rose-700 border-rose-100"
-                        : "bg-emerald-50 text-emerald-700 border-emerald-100"
+                      ? "bg-rose-50 text-rose-700 border-rose-100"
+                      : "bg-emerald-50 text-emerald-700 border-emerald-100"
                       }`}>
                       {ticket.actual2 === "" ? "Pending" : "Solved"}
                     </span>
@@ -700,8 +700,8 @@ export default function Dashboard() {
                   <td className="px-5 py-3 text-xs font-bold text-emerald-600">{record.approvedQty}</td>
                   <td className="px-5 py-3">
                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${record.status === "pending"
-                        ? "bg-orange-50 text-orange-700 border-orange-100"
-                        : "bg-purple-50 text-purple-700 border-purple-100"
+                      ? "bg-orange-50 text-orange-700 border-orange-100"
+                      : "bg-purple-50 text-purple-700 border-purple-100"
                       }`}>
                       {record.status === "pending" ? "Pending" : "Completed"}
                     </span>
@@ -710,7 +710,7 @@ export default function Dashboard() {
               )}
             />
           </div>
-      </div>
+        </div>
       </div>
 
       {/* Visit Calendar Modal */}
@@ -751,17 +751,17 @@ export default function Dashboard() {
                     margin={{ top: 10, right: 10, left: -20, bottom: 20 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <XAxis 
-                      dataKey="name" 
+                    <XAxis
+                      dataKey="name"
                       tick={{ fill: '#64748b', fontSize: 9, fontWeight: 600 }}
                       interval={0}
                       angle={-12}
                       textAnchor="end"
                       stroke="#cbd5e1"
                     />
-                    <YAxis 
-                      domain={[0, 10]} 
-                      ticks={[0, 2, 4, 6, 8, 10]} 
+                    <YAxis
+                      domain={[0, 10]}
+                      ticks={[0, 2, 4, 6, 8, 10]}
                       tick={{ fill: '#64748b', fontSize: 10 }}
                       stroke="#cbd5e1"
                     />

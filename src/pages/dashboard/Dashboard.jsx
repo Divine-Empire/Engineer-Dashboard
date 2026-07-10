@@ -4,15 +4,49 @@ import {
   Phone,
   ClipboardCheck,
   Search,
-  Calendar
+  Calendar,
+  ClipboardList,
+  Loader2Icon,
+  LoaderIcon,
+  Plus,
+  RotateCcw,
+  Trash2,
 } from 'lucide-react';
 import MetricCard from '../../components/MetricCard';
 import TableWrapper from '../../components/TableWrapper';
 import formatDate from '../../utils/formatDate';
 import VisitCalendarModal from './VisitCalendarModal';
-import { Modal } from '../../components/ui/modal';
 import { useAuthStore } from '../../store/authStore';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
+
+//------------------------------------------------
+//*ADDITIONAL IMPORTS NEEDED FOR NEW ENQUIRY MODAL
+//------------------------------------------------
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "../../components/ui/card"
+import { Button } from '../../components/ui/button';
+import { Input } from "../../components/ui/input";
+import { Label } from "../../components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../../components/ui/select";
+import { Modal } from "../../components/ui/modal";
+import toast from 'react-hot-toast';
+import { Textarea } from "../../components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "../../components/ui/dialog";
 
 const PREMIUM_COLORS = [
   { bg: "bg-emerald-50 text-emerald-700 border-emerald-200", badge: "bg-emerald-100 text-emerald-800" },
@@ -552,6 +586,778 @@ export default function Dashboard() {
 
   const isAdmin = user?.role === "ADMIN";
 
+  //---------------------------------------------------------
+  //* DEPENDENCIES NEEDED FOR THE NEW ENQUIRY FORM
+  //---------------------------------------------------------
+
+  // ==============================
+  // CONSTANTS
+  // ==============================
+
+  const sheet_url = import.meta.env.VITE_SERVICE_SHEET_API;
+
+  // ==============================
+  // STATES
+  // ==============================
+
+  const [pendingData, setPendingData] = useState([]);
+  const [fetchLoading, setFetchLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [enquiryMasterData, setEnquiryMasterData] = useState([]);
+  const [searchItem, setSearchItem] = useState("");
+
+  // Filter States
+  const [dateRange, setDateRange] = useState({
+    start: "",
+    end: "",
+  });
+  const [isDateModalOpen, setIsDateModalOpen] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState("all");
+
+  // New Enquiry States
+  const [showNewEnquiryForm, setShowNewEnquiryForm] = useState(false);
+
+  const [newEnquiryData, setNewEnquiryData] = useState({
+    clientType: "New",
+    sourceOfEnquiry: "",
+    callType: "",
+    enquiryReceiverName: "",
+    companyName: "",
+    clientName: "",
+    phoneNumber: "",
+    gstAddress: "",
+    siteAddress: "",
+    gstNo: "",
+    machineName: "",
+    category: "",
+    mentionIssue: "",
+    serviceLocation: "",
+    challanCopy: "",
+    machinePhoto: "",
+    videoCall: "",
+    newCategory: "",
+    videoCallTime: "",
+  });
+
+  const [newFormSelectedMachines, setNewFormSelectedMachines] = useState([]);
+
+  const [showMachineDropdown, setShowMachineDropdown] = useState(false);
+
+  const [machineSearchQuery, setMachineSearchQuery] = useState("");
+
+  const [isEditMode, setIsEditMode] = useState(false);
+
+  const [editingTicket, setEditingTicket] = useState(null);
+
+  const [uploadingFiles, setUploadingFiles] = useState({
+    challanCopy: false,
+    machinePhoto: false,
+  });
+
+  // ==============================
+  // LOCAL STORAGE
+  // ==============================
+
+  const userName = localStorage.getItem("currentUsername");
+
+  const roleStorage = localStorage.getItem("o2d-auth-storage");
+  const parsedData = roleStorage ? JSON.parse(roleStorage) : null;
+  const role = parsedData?.state?.user?.role;
+
+  // ==============================
+  // EFFECTS
+  // ==============================
+
+  useEffect(() => {
+    fetchMasterSheet();
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest(".dropdown-container")) {
+        setShowMachineDropdown(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  // ==============================
+  // FORMAT DATE
+  // ==============================
+
+  const formatDate = (dateString) => {
+    if (!dateString) return "";
+
+    const date = new Date(dateString);
+
+    if (isNaN(date.getTime())) return dateString;
+
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
+
+    return `${day}/${month}/${year}`;
+  };
+
+  // ==============================
+  // FORMAT DATE TIME
+  // ==============================
+
+  const formatDateTime = (date) => {
+    const d = new Date(date);
+
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const year = d.getFullYear();
+
+    const hours = String(d.getHours()).padStart(2, "0");
+    const minutes = String(d.getMinutes()).padStart(2, "0");
+    const seconds = String(d.getSeconds()).padStart(2, "0");
+
+    return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+  };
+
+  // ==============================
+  // OTP GENERATOR
+  // ==============================
+
+  const generateSixDigitOTP = () => {
+    let result = "";
+
+    for (let i = 0; i < 6; i++) {
+      result += Math.floor(Math.random() * 10).toString();
+    }
+
+    return result;
+  };
+
+  const handleEditClick = (ticket) => {
+    setIsEditMode(true);
+
+    setEditingTicket(ticket);
+
+    setNewEnquiryData({
+      clientType: ticket.clientType || "New",
+      sourceOfEnquiry: ticket.sourceOfEnquiry || "",
+      callType: ticket.callType || "",
+      enquiryReceiverName: ticket.enquiryReceiverName || "",
+      companyName: ticket.companyName || "",
+      clientName: ticket.clientName || "",
+      phoneNumber: ticket.phoneNumber || "",
+      gstAddress: ticket.gstAddress || "",
+      siteAddress: ticket.siteAddress || "",
+      gstNo: ticket.gstNo || "",
+      machineName: ticket.machineName || "",
+      category: ticket.category || "",
+      mentionIssue: ticket.mentionIssue || "",
+      serviceLocation: ticket.serviceLocation || "",
+      challanCopy: ticket.challanCopy || "",
+      machinePhoto: ticket.machinePhoto || "",
+      videoCall: ticket.videoCall || "",
+      newCategory: ticket.newCategory || "",
+      videoCallTime: ticket.videoCallTime || "",
+    });
+
+    const machines = ticket.machineName
+      ? ticket.machineName
+        .split(",")
+        .map((m) => m.trim())
+        .filter(Boolean)
+      : [];
+
+    setNewFormSelectedMachines(machines);
+
+    setShowNewEnquiryForm(true);
+  };
+
+  const uploadFileToDrive = async (file, field) => {
+    setUploadingFiles((prev) => ({
+      ...prev,
+      [field]: true,
+    }));
+
+    try {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+
+      const base64Data = await new Promise((resolve, reject) => {
+        reader.onload = () => {
+          const result = reader.result.split(",")[1];
+          resolve(result);
+        };
+
+        reader.onerror = () => {
+          reject(new Error("Failed to read file"));
+        };
+      });
+
+      const response = await fetch(sheet_url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          action: "uploadFile",
+          fileName: `Warehouse_${field}_${Date.now()}_${file.name}`,
+          base64Data,
+          mimeType: file.type,
+          folderId: import.meta.env.VITE_DRIVE_FOLDER_ID,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || "Failed to upload file");
+      }
+
+      setNewEnquiryData((prev) => ({
+        ...prev,
+        [field]: result.fileUrl,
+      }));
+
+      toast.success(
+        field === "challanCopy"
+          ? "Challan Copy uploaded successfully."
+          : "Machine Photo uploaded successfully."
+      );
+    } catch (error) {
+      console.error(error);
+
+      toast.error(error.message || "Failed to upload file to Google Drive.");
+    } finally {
+      setUploadingFiles((prev) => ({
+        ...prev,
+        [field]: false,
+      }));
+    }
+  };
+
+  const fetchMasterSheet = async () => {
+    try {
+      const response = await fetch(`${sheet_url}?sheet=DROPDOWN`);
+      const result = await response.json();
+
+      if (result.success && result.data && result.data.length > 0) {
+        const headers = result.data[0];
+
+        const structuredData = {};
+
+        headers.forEach((header, index) => {
+          let normalizedHeader = header;
+
+          if (header === "Enquiry-Receiver-Name")
+            normalizedHeader = "Enquiry Receiver Name";
+
+          if (header === "Company-Name")
+            normalizedHeader = "Company Name";
+
+          if (header === "GST-No.")
+            normalizedHeader = "GST No.";
+
+          if (index === 92) {
+            structuredData["Requirement Service Category"] = [];
+          }
+
+          structuredData[normalizedHeader] = [];
+        });
+
+        result.data.slice(1).forEach((row) => {
+          row.forEach((value, index) => {
+            const header = headers[index];
+
+            let normalizedHeader = header;
+
+            if (header === "Enquiry-Receiver-Name")
+              normalizedHeader = "Enquiry Receiver Name";
+
+            if (header === "Company-Name")
+              normalizedHeader = "Company Name";
+
+            if (header === "GST-No.")
+              normalizedHeader = "GST No.";
+
+            const stringValue =
+              value !== null && value !== undefined
+                ? String(value).trim()
+                : "";
+
+            if (structuredData[normalizedHeader]) {
+              structuredData[normalizedHeader].push(stringValue);
+            }
+
+            if (
+              index === 92 &&
+              structuredData["Requirement Service Category"]
+            ) {
+              structuredData["Requirement Service Category"].push(
+                stringValue
+              );
+            }
+          });
+        });
+
+        if (
+          !structuredData["Call type"] ||
+          structuredData["Call type"].filter((x) => x).length === 0
+        ) {
+          structuredData["Call type"] = [
+            "Incoming",
+            "Outgoing",
+          ];
+        }
+
+        setEnquiryMasterData([structuredData]);
+      }
+    } catch (error) {
+      console.error(error);
+
+      toast.error("Failed to load master data");
+    }
+  };
+
+  const handleNewEnquiryCompanyChange = (value) => {
+    setNewEnquiryData((prev) => {
+      const updated = {
+        ...prev,
+        companyName: value,
+      };
+
+      if (prev.clientType === "Existing" && enquiryMasterData[0]) {
+        const companyNames =
+          enquiryMasterData[0]["Company Name"] || [];
+
+        const gstAddresses =
+          enquiryMasterData[0]["Billing Address"] || [];
+
+        const gstNos =
+          enquiryMasterData[0]["GST No."] || [];
+
+        const index = companyNames.findIndex(
+          (name) =>
+            name &&
+            name.toLowerCase() === value.toLowerCase()
+        );
+
+        if (index !== -1) {
+          updated.gstAddress =
+            gstAddresses[index] || "";
+
+          updated.gstNo =
+            gstNos[index] || "";
+        }
+      }
+
+      return updated;
+    });
+  };
+
+  const fetchData = async () => {
+    setFetchLoading(true);
+
+    try {
+      const response = await fetch(`${sheet_url}?sheet=Ticket_Enquiry`);
+      const json = await response.json();
+
+      if (json.success && Array.isArray(json.data)) {
+        const allData = json.data.slice(6).map((row, index) => ({
+          id: index + 1,
+          timeStemp: row[0] || "",
+          ticketId: row[1] || "",
+          sourceOfEnquiry: row[12] || "",
+          callType: row[13] || "",
+          enquiryReceiverName: row[14] || "",
+          clientType: row[15] || "",
+          companyName: row[16] || "",
+          clientName: row[17] || "",
+          phoneNumber: row[18] || "",
+          gstAddress: row[19] || "",
+          siteAddress: row[20] || "",
+          gstNo: row[21] || "",
+          machineName: row[22] || "",
+          category: row[23] || "",
+          mentionIssue: row[24] || "",
+          serviceLocation: row[25] || "",
+          challanCopy: row[26] || "",
+          machinePhoto: row[27] || "",
+          videoCall: row[28] || "",
+          engineerAssign: row[28] || "",
+          CREName: row[127] || "",
+          planned1: row[9] || "",
+          actual1: row[10] || "",
+          colAI: row[34] || "",
+          colAL: row[37] || "",
+          colDI: row[112] || "",
+          otp: row[35] || "",
+          newCategory: row[152] || "",
+          videoCallTime: row[153] || "",
+        }));
+
+        const filteredAllData = allData.filter((ticket) => {
+          const valAI = String(ticket.colAI).trim().toLowerCase();
+          const valAL = String(ticket.colAL).trim();
+          const valDI = String(ticket.colDI).trim();
+
+          const isAIYes = valAI === "yes";
+          const isALEmpty = valAL === "";
+          const isDINotEmpty = valDI !== "";
+
+          return !(isAIYes || isALEmpty || isDINotEmpty);
+        });
+
+        const uniqueTicketsMap = new Map();
+
+        filteredAllData.forEach((ticket) => {
+          if (ticket.ticketId) {
+            uniqueTicketsMap.set(ticket.ticketId, ticket);
+          }
+        });
+
+        setPendingData(Array.from(uniqueTicketsMap.values()));
+      }
+    } catch (error) {
+      console.error(error);
+
+      toast.error("Failed to load data");
+    } finally {
+      setFetchLoading(false);
+    }
+  };
+
+  const roleFilteredData =
+    role === "user"
+      ? pendingData.filter(
+        (item) => item.CREName === userName
+      )
+      : role === "engineer"
+        ? pendingData.filter(
+          (item) => item.engineerAssign === userName
+        )
+        : pendingData;
+
+  const filteredPendingData = roleFilteredData
+    .filter((item) => {
+      const q = searchItem.toLowerCase();
+
+      const matchesSearch =
+        String(item.ticketId || "")
+          .toLowerCase()
+          .includes(q) ||
+        String(item.clientName || "")
+          .toLowerCase()
+          .includes(q) ||
+        String(item.companyName || "")
+          .toLowerCase()
+          .includes(q) ||
+        String(item.phoneNumber || "")
+          .toLowerCase()
+          .includes(q);
+
+      if (!matchesSearch) return false;
+
+      if (
+        categoryFilter !== "all" &&
+        item.category !== categoryFilter
+      ) {
+        return false;
+      }
+
+      if (item.timeStemp) {
+        let ticketDateObj = null;
+
+        if (
+          typeof item.timeStemp === "string" &&
+          item.timeStemp.includes("/")
+        ) {
+          const datePart = item.timeStemp.split(" ")[0];
+          const parts = datePart.split("/");
+
+          if (parts.length === 3) {
+            ticketDateObj = new Date(
+              parts[2],
+              parts[1] - 1,
+              parts[0]
+            );
+          }
+        } else {
+          ticketDateObj = new Date(item.timeStemp);
+        }
+
+        if (
+          ticketDateObj &&
+          !isNaN(ticketDateObj.getTime())
+        ) {
+          ticketDateObj.setHours(0, 0, 0, 0);
+
+          if (dateRange.start) {
+            const fromDateObj = new Date(
+              dateRange.start
+            );
+
+            fromDateObj.setHours(0, 0, 0, 0);
+
+            if (ticketDateObj < fromDateObj)
+              return false;
+          }
+
+          if (dateRange.end) {
+            const toDateObj = new Date(
+              dateRange.end
+            );
+
+            toDateObj.setHours(
+              23,
+              59,
+              59,
+              999
+            );
+
+            if (ticketDateObj > toDateObj)
+              return false;
+          }
+        }
+      } else if (
+        dateRange.start ||
+        dateRange.end
+      ) {
+        return false;
+      }
+
+      return true;
+    })
+    .reverse();
+
+  const availableCategories = [
+    ...new Set(
+      roleFilteredData
+        .map((item) => item.category)
+        .filter(Boolean)
+    ),
+  ];
+
+  const handleNewEnquirySubmit = async (e) => {
+    e.preventDefault();
+
+    if (!newEnquiryData.clientName) {
+      alert("Error: Client Name is required");
+      return;
+    }
+    if (!newEnquiryData.phoneNumber) {
+      alert("Error: Phone Number is required");
+      return;
+    }
+    if (!newEnquiryData.category) {
+      alert("Error: Enquiry-Type is required");
+      return;
+    }
+    if (!newEnquiryData.newCategory) {
+      alert("Error: Category is required");
+      return;
+    }
+    if (newEnquiryData.videoCall === "Yes" && !newEnquiryData.videoCallTime) {
+      alert("Error: Video-Call Time is required");
+      return;
+    }
+    if (!newEnquiryData.callType) {
+      alert("Error: Call Type is required");
+      return;
+    }
+    if (!newEnquiryData.sourceOfEnquiry) {
+      alert("Error: Source of Enquiry is required");
+      return;
+    }
+    if (!newEnquiryData.enquiryReceiverName) {
+      alert("Error: Enquiry Receiver Name is required");
+      return;
+    }
+    if (!newEnquiryData.serviceLocation) {
+      alert("Error: Service Location is required");
+      return;
+    }
+    if (newEnquiryData.clientType === "Existing" && !newEnquiryData.companyName) {
+      alert("Error: Company Name is required for existing clients");
+      return;
+    }
+    if (newFormSelectedMachines.length === 0) {
+      alert("Error: Machine Name is required");
+      return;
+    }
+    if (!newEnquiryData.mentionIssue || !newEnquiryData.mentionIssue.trim()) {
+      alert("Error: Mention Issue is required");
+      return;
+    }
+
+    setIsSubmitting(true);
+    const currentDateTime = formatDateTime(new Date());
+
+    try {
+      if (isEditMode && editingTicket) {
+        const isLocWarehouse = newEnquiryData.serviceLocation?.trim() === "Warehouse";
+        const columnData = {
+          M: newEnquiryData.sourceOfEnquiry || "",
+          N: newEnquiryData.callType || "",
+          O: newEnquiryData.enquiryReceiverName || "",
+          P: newEnquiryData.clientType || "",
+          Q: newEnquiryData.companyName || "",
+          R: newEnquiryData.clientName || "",
+          S: newEnquiryData.phoneNumber || "",
+          T: newEnquiryData.gstAddress || "",
+          U: newEnquiryData.siteAddress || "",
+          V: newEnquiryData.gstNo || "",
+          W: newFormSelectedMachines.join(", "),
+          X: newEnquiryData.category || "",
+          Y: newEnquiryData.mentionIssue || "",
+          Z: newEnquiryData.serviceLocation || "",
+          AA: isLocWarehouse ? (newEnquiryData.challanCopy || "") : "",
+          AB: isLocWarehouse ? (newEnquiryData.machinePhoto || "") : "",
+          AC: newEnquiryData.videoCall || "",
+          EW: newEnquiryData.newCategory || "",
+          EX: newEnquiryData.videoCallTime || "",
+        };
+
+        const response = await fetch(sheet_url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams({
+            sheetId: import.meta.env.VITE_GOOGLE_SHEET_ID,
+            sheetName: "Ticket_Enquiry",
+            action: "update",
+            rowIndex: (editingTicket.id + 6).toString(),
+            columnData: JSON.stringify(columnData),
+          }),
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          toast.success(`Enquiry updated successfully for Ticket ID: ${editingTicket.ticketId}`);
+          setShowNewEnquiryForm(false);
+          setNewEnquiryData({
+            clientType: "New",
+            sourceOfEnquiry: "",
+            callType: "",
+            enquiryReceiverName: "",
+            companyName: "",
+            clientName: "",
+            phoneNumber: "",
+            gstAddress: "",
+            siteAddress: "",
+            gstNo: "",
+            machineName: "",
+            category: "",
+            mentionIssue: "",
+            serviceLocation: "",
+            challanCopy: "",
+            machinePhoto: "",
+            videoCall: "",
+            newCategory: "",
+            videoCallTime: ""
+          });
+          setNewFormSelectedMachines([]);
+          setIsEditMode(false);
+          setEditingTicket(null);
+          fetchData();
+        } else {
+          throw new Error(result.error || "Failed to update enquiry");
+        }
+      } else {
+        const rowData = Array(160).fill("");
+        rowData[0] = currentDateTime;
+        rowData[1] = "";
+        rowData[9] = currentDateTime;
+
+        rowData[12] = newEnquiryData.sourceOfEnquiry || "";
+        rowData[13] = newEnquiryData.callType || "";
+        rowData[14] = newEnquiryData.enquiryReceiverName || "";
+        rowData[15] = newEnquiryData.clientType || "";
+        rowData[16] = newEnquiryData.companyName || "";
+        rowData[17] = newEnquiryData.clientName || "";
+        rowData[18] = newEnquiryData.phoneNumber || "";
+        rowData[19] = newEnquiryData.gstAddress || "";
+        rowData[20] = newEnquiryData.siteAddress || "";
+        rowData[21] = newEnquiryData.gstNo || "";
+        rowData[22] = newFormSelectedMachines.join(", ");
+        rowData[23] = newEnquiryData.category || "";
+        rowData[24] = newEnquiryData.mentionIssue || "";
+        rowData[25] = newEnquiryData.serviceLocation || "";
+
+        const isLocWarehouse = newEnquiryData.serviceLocation?.trim() === "Warehouse";
+        rowData[26] = isLocWarehouse ? (newEnquiryData.challanCopy || "") : "";
+        rowData[27] = isLocWarehouse ? (newEnquiryData.machinePhoto || "") : "";
+        rowData[28] = newEnquiryData.videoCall || "";
+
+        // EW is index 152, EX is index 153
+        rowData[152] = newEnquiryData.newCategory || "";
+        rowData[153] = newEnquiryData.videoCallTime || "";
+
+        // Generate and assign OTP to column AJ (index 35)
+        rowData[35] = generateSixDigitOTP();
+
+        rowData[117] = "No";
+        rowData[127] = userName || "";
+
+        const response = await fetch(sheet_url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams({
+            sheetName: "Ticket_Enquiry",
+            action: "insertTicket",
+            rowData: JSON.stringify(rowData),
+          }),
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          toast.success(`Enquiry created successfully with Ticket ID: ${result.ticketId}`);
+          setShowNewEnquiryForm(false);
+          setNewEnquiryData({
+            clientType: "New",
+            sourceOfEnquiry: "",
+            callType: "",
+            enquiryReceiverName: "",
+            companyName: "",
+            clientName: "",
+            phoneNumber: "",
+            gstAddress: "",
+            siteAddress: "",
+            gstNo: "",
+            machineName: "",
+            category: "",
+            mentionIssue: "",
+            serviceLocation: "",
+            challanCopy: "",
+            machinePhoto: "",
+            videoCall: "",
+            newCategory: "",
+            videoCallTime: ""
+          });
+          setNewFormSelectedMachines([]);
+          fetchData();
+        } else {
+          throw new Error(result.error || "Failed to create enquiry");
+        }
+      }
+    } catch (error) {
+      console.error("Error saving enquiry:", error);
+      toast.error(error.message || "Failed to save enquiry");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+
+
   return (
     <div className="space-y-6 flex-1 flex flex-col min-h-0 overflow-y-auto pr-1">
       {/* Dashboard Header with CTA Buttons */}
@@ -561,6 +1367,37 @@ export default function Dashboard() {
           <p className="text-xs text-slate-500 mt-1">Welcome back, {user?.name || "User"}</p>
         </div>
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => {
+              setIsEditMode(false);
+              setEditingTicket(null);
+              setNewEnquiryData({
+                clientType: "New",
+                sourceOfEnquiry: "",
+                callType: "",
+                enquiryReceiverName: "",
+                companyName: "",
+                clientName: "",
+                phoneNumber: "",
+                gstAddress: "",
+                siteAddress: "",
+                gstNo: "",
+                machineName: "",
+                category: "",
+                mentionIssue: "",
+                serviceLocation: "",
+                challanCopy: "",
+                machinePhoto: "",
+                serialNumOfMachines: ""
+              });
+              setNewFormSelectedMachines([]);
+              setShowNewEnquiryForm(true);
+            }}
+            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all"
+          >
+            <Plus className="h-4 w-4" />
+            New Enquiry
+          </button>
           <button
             onClick={() => setIsCalendarModalOpen(true)}
             className="bg-blue-600 hover:bg-blue-700 text-white shadow-md flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all"
@@ -776,6 +1613,505 @@ export default function Dashboard() {
           </div>
         </Modal>
       )}
+      {/* New Enquiry Modal */}
+      <Modal
+        isOpen={showNewEnquiryForm}
+        onClose={() => setShowNewEnquiryForm(false)}
+        title={
+          <div className="flex items-center space-x-2">
+            <ClipboardList className="w-5 h-5 text-blue-600" />
+            <span>{isEditMode ? `Edit Enquiry: ${editingTicket?.ticketId}` : "New Enquiry"}</span>
+          </div>
+        }
+        size="4xl"
+        className="rounded-lg max-h-[90vh] overflow-y-auto"
+      >
+        <form
+          onSubmit={handleNewEnquirySubmit}
+          className="space-y-6 max-h-[70vh] overflow-y-auto p-2"
+        >
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="bg-gray-50 px-4 py-3">
+              <CardTitle className="text-sm font-medium flex items-center bg-transparent border-0 shadow-none text-gray-800">
+                Client Details
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <Label className="text-sm">Client Type *</Label>
+                <Select
+                  onValueChange={(value) => {
+                    setNewEnquiryData(prev => ({
+                      ...prev,
+                      clientType: value,
+                      companyName: value === "New" ? "" : prev.companyName,
+                      gstAddress: value === "New" ? "" : prev.gstAddress,
+                      gstNo: value === "New" ? "" : prev.gstNo
+                    }));
+                  }}
+                  value={newEnquiryData.clientType}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Client Type" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border border-gray-300 rounded-md shadow-lg">
+                    <SelectItem value="New">New</SelectItem>
+                    <SelectItem value="Existing">Existing</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-sm">Company Name *</Label>
+                {newEnquiryData.clientType === "Existing" ? (
+                  <div className="relative">
+                    <Input
+                      value={newEnquiryData.companyName || ""}
+                      onChange={(e) => handleNewEnquiryCompanyChange(e.target.value)}
+                      placeholder="Type to search or select company name"
+                      list="new-company-suggestions"
+                    />
+                    <datalist id="new-company-suggestions">
+                      {(enquiryMasterData[0]?.["Company Name"] || [])
+                        .filter((name, index, self) => name && self.indexOf(name) === index)
+                        .map((name, index) => (
+                          <option key={index} value={name} />
+                        ))}
+                    </datalist>
+                  </div>
+                ) : (
+                  <Input
+                    value={newEnquiryData.companyName || ""}
+                    onChange={(e) => setNewEnquiryData(prev => ({ ...prev, companyName: e.target.value }))}
+                    placeholder="Enter company name"
+                  />
+                )}
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-sm">Client Name *</Label>
+                <Input
+                  value={newEnquiryData.clientName || ""}
+                  onChange={(e) => setNewEnquiryData(prev => ({ ...prev, clientName: e.target.value }))}
+                  placeholder="Enter client name"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-sm">Phone Number *</Label>
+                <Input
+                  value={newEnquiryData.phoneNumber || ""}
+                  onChange={(e) => setNewEnquiryData(prev => ({ ...prev, phoneNumber: e.target.value }))}
+                  placeholder="Enter phone number"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="bg-gray-50 px-4 py-3">
+              <CardTitle className="text-sm font-medium flex items-center bg-transparent border-0 shadow-none text-gray-800">
+                Enquiry Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <Label className="text-sm">Call Type *</Label>
+                <Select
+                  onValueChange={(value) => setNewEnquiryData(prev => ({ ...prev, callType: value }))}
+                  value={newEnquiryData.callType}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Call Type" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border border-gray-300 rounded-md shadow-lg">
+                    {(enquiryMasterData[0]?.["Call type"] || [])
+                      .filter(Boolean)
+                      .map((option) => (
+                        <SelectItem key={option} value={option}>
+                          {option}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-sm">Source of Enquiry *</Label>
+                <div className="relative">
+                  <Input
+                    value={newEnquiryData.sourceOfEnquiry || ""}
+                    onChange={(e) => setNewEnquiryData(prev => ({ ...prev, sourceOfEnquiry: e.target.value }))}
+                    placeholder="Search or enter source"
+                    list="new-source-suggestions"
+                  />
+                  <datalist id="new-source-suggestions">
+                    {(enquiryMasterData[0]?.["Source of enquiry"] || [])
+                      .filter((name, index, self) => name && self.indexOf(name) === index)
+                      .map((name, index) => (
+                        <option key={index} value={name} />
+                      ))}
+                  </datalist>
+                </div>
+              </div>
+
+              <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-1">
+                  <Label className="text-sm">Enquiry Receiver Name *</Label>
+                  <div className="relative">
+                    <Input
+                      value={newEnquiryData.enquiryReceiverName || ""}
+                      onChange={(e) => setNewEnquiryData(prev => ({ ...prev, enquiryReceiverName: e.target.value }))}
+                      placeholder="Search or enter receiver name"
+                      list="new-receiver-suggestions"
+                    />
+                    <datalist id="new-receiver-suggestions">
+                      {(enquiryMasterData[0]?.["Enquiry Receiver Name"] || [])
+                        .filter((name, index, self) => name && self.indexOf(name) === index)
+                        .map((name, index) => (
+                          <option key={index} value={name} />
+                        ))}
+                    </datalist>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-sm">Enquiry-Type *</Label>
+                  <Select
+                    onValueChange={(value) => setNewEnquiryData(prev => ({ ...prev, category: value }))}
+                    value={newEnquiryData.category}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Enquiry-Type" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white border border-gray-300 rounded-md shadow-lg">
+                      {[...new Set(enquiryMasterData[0]?.["Requirement Service Category"] || [])]
+                        .filter(Boolean)
+                        .map((option) => (
+                          <SelectItem key={option} value={option}>
+                            {option}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-sm">Category *</Label>
+                  <Select
+                    onValueChange={(value) => setNewEnquiryData(prev => ({ ...prev, newCategory: value }))}
+                    value={newEnquiryData.newCategory}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Category" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white border border-gray-300 rounded-md shadow-lg">
+                      {[...new Set(enquiryMasterData[0]?.["Category"] || [])]
+                        .filter(Boolean)
+                        .map((option) => (
+                          <SelectItem key={option} value={option}>
+                            {option}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <Label className="text-sm">Video-Call</Label>
+                  <Select
+                    onValueChange={(value) => setNewEnquiryData(prev => ({ ...prev, videoCall: value }))}
+                    value={newEnquiryData.videoCall || ""}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Yes/No" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white border border-gray-300 rounded-md shadow-lg">
+                      <SelectItem value="Yes">Yes</SelectItem>
+                      <SelectItem value="No">No</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {newEnquiryData.videoCall === "Yes" && (
+                  <div className="space-y-1 animate-in fade-in duration-300">
+                    <Label className="text-sm">Video-Call Time *</Label>
+                    <Input
+                      type="time"
+                      value={newEnquiryData.videoCallTime || ""}
+                      onChange={(e) => setNewEnquiryData(prev => ({ ...prev, videoCallTime: e.target.value }))}
+                      required
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-sm">Billing Address</Label>
+                <Input
+                  value={newEnquiryData.gstAddress || ""}
+                  onChange={(e) => setNewEnquiryData(prev => ({ ...prev, gstAddress: e.target.value }))}
+                  placeholder="Enter Billing Address"
+                  disabled={newEnquiryData.clientType === "Existing" && newEnquiryData.companyName !== ""}
+                  className={newEnquiryData.clientType === "Existing" && newEnquiryData.companyName !== "" ? "bg-gray-100" : ""}
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-sm">GST No.</Label>
+                <Input
+                  value={newEnquiryData.gstNo || ""}
+                  onChange={(e) => setNewEnquiryData(prev => ({ ...prev, gstNo: e.target.value }))}
+                  placeholder="Enter GST No."
+                  disabled={newEnquiryData.clientType === "Existing" && newEnquiryData.companyName !== ""}
+                  className={newEnquiryData.clientType === "Existing" && newEnquiryData.companyName !== "" ? "bg-gray-100" : ""}
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-sm">Site Address</Label>
+                <Input
+                  value={newEnquiryData.siteAddress || ""}
+                  onChange={(e) => setNewEnquiryData(prev => ({ ...prev, siteAddress: e.target.value }))}
+                  placeholder="Enter Site Address"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-sm">Service Location *</Label>
+                <Select
+                  onValueChange={(value) => setNewEnquiryData(prev => ({ ...prev, serviceLocation: value }))}
+                  value={newEnquiryData.serviceLocation}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Service Location" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border border-gray-300 rounded-md shadow-lg">
+                    {[...new Set(enquiryMasterData[0]?.["Service Location"] || [])]
+                      .filter(Boolean)
+                      .map((option) => (
+                        <SelectItem key={option} value={option}>
+                          {option}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+
+
+              {newEnquiryData.serviceLocation?.trim() === "Warehouse" && (
+                <div className="md:col-span-2 border border-blue-100 rounded-lg p-4 bg-blue-50/20 space-y-4">
+                  <h4 className="text-sm font-semibold text-blue-800 border-b border-blue-100 pb-2">
+                    Warehouse Service Details
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Challan Copy File Input */}
+                    <div className="space-y-1">
+                      <Label className="text-sm">Challan Copy</Label>
+                      {newEnquiryData.challanCopy ? (
+                        <div className="flex items-center justify-between border border-emerald-200 rounded-md p-2 bg-emerald-50 text-emerald-800 text-sm">
+                          <a href={newEnquiryData.challanCopy} target="_blank" rel="noopener noreferrer" className="font-semibold underline truncate max-w-[200px]">
+                            View Challan Copy
+                          </a>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={() => setNewEnquiryData(prev => ({ ...prev, challanCopy: "" }))}
+                            className="text-red-500 hover:text-red-700 h-8 px-2 py-1 text-xs font-semibold hover:bg-red-50"
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="relative">
+                          <Input
+                            type="file"
+                            onChange={(e) => {
+                              if (e.target.files?.[0]) {
+                                uploadFileToDrive(e.target.files[0], "challanCopy");
+                              }
+                            }}
+                            disabled={uploadingFiles.challanCopy}
+                          />
+                          {uploadingFiles.challanCopy && (
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center text-blue-600 text-xs">
+                              <Loader2Icon className="animate-spin w-4 h-4 mr-1" />
+                              Uploading...
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Machine Photo File Input */}
+                    <div className="space-y-1">
+                      <Label className="text-sm">Machine Photo</Label>
+                      {newEnquiryData.machinePhoto ? (
+                        <div className="flex items-center justify-between border border-emerald-200 rounded-md p-2 bg-emerald-50 text-emerald-800 text-sm">
+                          <a href={newEnquiryData.machinePhoto} target="_blank" rel="noopener noreferrer" className="font-semibold underline truncate max-w-[200px]">
+                            View Machine Photo
+                          </a>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={() => setNewEnquiryData(prev => ({ ...prev, machinePhoto: "" }))}
+                            className="text-red-500 hover:text-red-700 h-8 px-2 py-1 text-xs font-semibold hover:bg-red-50"
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="relative">
+                          <Input
+                            type="file"
+                            onChange={(e) => {
+                              if (e.target.files?.[0]) {
+                                uploadFileToDrive(e.target.files[0], "machinePhoto");
+                              }
+                            }}
+                            disabled={uploadingFiles.machinePhoto}
+                          />
+                          {uploadingFiles.machinePhoto && (
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center text-blue-600 text-xs">
+                              <Loader2Icon className="animate-spin w-4 h-4 mr-1" />
+                              Uploading...
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+
+              <div className="space-y-1 md:col-span-2 relative">
+                <Label className="text-sm">Machine Name *</Label>
+                <div className="relative dropdown-container">
+                  <button
+                    type="button"
+                    onClick={() => setShowMachineDropdown(!showMachineDropdown)}
+                    className="flex h-10 w-full items-center justify-between rounded-md border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <span className="text-gray-500">Select machine(s)</span>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="h-4 w-4 opacity-50"
+                    >
+                      <path d="m6 9 6 6 6-6" />
+                    </svg>
+                  </button>
+
+                  {showMachineDropdown && (
+                    <div className="absolute left-0 right-0 z-50 mt-1 max-h-60 overflow-y-auto rounded-md border border-gray-200 bg-white p-1 shadow-lg">
+                      <div className="px-2 py-1 sticky top-0 bg-white z-10">
+                        <Input
+                          placeholder="Search machine..."
+                          value={machineSearchQuery}
+                          onChange={(e) => setMachineSearchQuery(e.target.value)}
+                          className="h-8 text-xs border-gray-200"
+                        />
+                      </div>
+                      <div className="mt-1">
+                        {[...new Set(enquiryMasterData[0]?.["Machine Name"] || [])]
+                          .filter(Boolean)
+                          .filter(option =>
+                            option.toLowerCase().includes(machineSearchQuery.toLowerCase())
+                          )
+                          .map((option) => (
+                            <button
+                              key={option}
+                              type="button"
+                              disabled={newFormSelectedMachines.includes(option)}
+                              onClick={() => {
+                                if (!newFormSelectedMachines.includes(option)) {
+                                  setNewFormSelectedMachines(prev => [...prev, option]);
+                                }
+                                setMachineSearchQuery("");
+                                setShowMachineDropdown(false);
+                              }}
+                              className="flex w-full items-center rounded-sm px-2 py-1.5 text-sm hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed text-left"
+                            >
+                              {option}
+                            </button>
+                          ))}
+                        {[...new Set(enquiryMasterData[0]?.["Machine Name"] || [])]
+                          .filter(Boolean)
+                          .filter(option =>
+                            option.toLowerCase().includes(machineSearchQuery.toLowerCase())
+                          ).length === 0 && (
+                            <p className="text-xs text-gray-500 text-center py-2">No machine found</p>
+                          )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                {newFormSelectedMachines.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {newFormSelectedMachines.map((machine) => (
+                      <div
+                        key={machine}
+                        className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded flex items-center"
+                      >
+                        {machine}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setNewFormSelectedMachines(prev => prev.filter(m => m !== machine));
+                          }}
+                          className="ml-1 text-blue-600 hover:text-blue-800 font-bold"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-1 md:col-span-2">
+                <Label className="text-sm">Mention Issue *</Label>
+                <Textarea
+                  value={newEnquiryData.mentionIssue || ""}
+                  onChange={(e) => setNewEnquiryData(prev => ({ ...prev, mentionIssue: e.target.value }))}
+                  placeholder="Describe the issue"
+                  rows={3}
+                />
+              </div>
+            </CardContent>
+          </Card>
+          <div className="flex justify-end space-x-4 pt-6">
+            <Button
+              type="button"
+              onClick={() => setShowNewEnquiryForm(false)}
+              className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-md transition-all duration-300"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-md transition-all duration-300"
+              disabled={isSubmitting}
+            >
+              {isSubmitting && (
+                <Loader2Icon className="animate-spin w-4 h-4 mr-2" />
+              )}
+              {isEditMode ? "Save Changes" : "Create Enquiry"}
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

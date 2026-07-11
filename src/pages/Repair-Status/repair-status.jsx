@@ -225,6 +225,138 @@ export default function RepairStatus() {
               </div>
             ) : "No entries found."
           }
+          renderCard={(ticket) => {
+            if (activeTab === 'pending') {
+              return (
+                <div key={ticket.id} className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-3 relative border-l-4 border-l-blue-500">
+                  {/* Top Right Action Button */}
+                  <div className="absolute top-4 right-4">
+                    <button
+                      onClick={() => setSelectedTicket(ticket)}
+                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1"
+                    >
+                      <Wrench size={12} />
+                      Process
+                    </button>
+                  </div>
+
+                  {/* Header / Info */}
+                  <div className="pr-24">
+                    <span className="text-[10px] font-mono font-bold bg-slate-100 px-1.5 py-0.5 rounded text-slate-700">
+                      {ticket.ticketId}
+                    </span>
+                    <p className="text-[11px] text-slate-500 mt-1">
+                      {formatDate(ticket.timeStemp)}
+                    </p>
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-100 space-y-2 text-xs">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <p className="text-slate-500 font-medium">Client Name</p>
+                        <p className="text-slate-800 font-semibold">{ticket.clientName || "N/A"}</p>
+                      </div>
+                      <div>
+                        <p className="text-slate-500 font-medium">Company Name</p>
+                        <p className="text-slate-800 font-semibold">{ticket.companyName || "N/A"}</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 pt-1">
+                      <div>
+                        <p className="text-slate-500 font-medium">Machine Name</p>
+                        <p className="text-slate-800">{ticket.machineName || "N/A"}</p>
+                      </div>
+                      <div>
+                        <p className="text-slate-500 font-medium">Service Location</p>
+                        <p className="text-slate-800">{ticket.serviceLocation || "N/A"}</p>
+                      </div>
+                    </div>
+
+                    <div className="pt-1">
+                      <p className="text-slate-500 font-medium">Mention Issue</p>
+                      <p className="text-slate-700">{ticket.mentionIssue || "N/A"}</p>
+                    </div>
+
+                    {ticket.remarks && (
+                      <div className="bg-slate-50 p-2 rounded-lg text-slate-600 mt-1">
+                        <p className="text-slate-500 font-medium text-[10px]">Remarks</p>
+                        <p className="text-[11px] italic">{ticket.remarks}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            } else {
+              const statusBorder = ticket.repairStatus === "Yes" ? "border-l-emerald-500" : "border-l-rose-500";
+              return (
+                <div key={ticket.id} className={`bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-3 relative border-l-4 ${statusBorder}`}>
+                  {/* Header / Info */}
+                  <div>
+                    <span className="text-[10px] font-mono font-bold bg-slate-100 px-1.5 py-0.5 rounded text-slate-700">
+                      {ticket.ticketId}
+                    </span>
+                    <p className="text-[11px] text-slate-500 mt-1">
+                      {formatDate(ticket.timeStemp)}
+                    </p>
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-100 space-y-2 text-xs">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <p className="text-slate-500 font-medium">Client Name</p>
+                        <p className="text-slate-800 font-semibold">{ticket.clientName || "N/A"}</p>
+                      </div>
+                      <div>
+                        <p className="text-slate-500 font-medium">Company Name</p>
+                        <p className="text-slate-800 font-semibold">{ticket.companyName || "N/A"}</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 pt-1">
+                      <div>
+                        <p className="text-slate-500 font-medium">Machine Name</p>
+                        <p className="text-slate-800">{ticket.machineName || "N/A"}</p>
+                      </div>
+                      <div>
+                        <p className="text-slate-500 font-medium">Service Location</p>
+                        <p className="text-slate-800">{ticket.serviceLocation || "N/A"}</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 pt-1">
+                      <div>
+                        <p className="text-slate-500 font-medium">Engineer Name</p>
+                        <p className="text-slate-800 font-semibold">{ticket.engineerName || "N/A"}</p>
+                      </div>
+                      <div>
+                        <p className="text-slate-500 font-medium">Repair Status</p>
+                        <span className={`inline-block px-2.5 py-0.5 rounded-full font-semibold border text-[10px] ${
+                          ticket.repairStatus === "Yes"
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                            : "bg-rose-50 text-rose-700 border-rose-100"
+                        }`}>
+                          {ticket.repairStatus === "Yes" ? "Repaired" : "Pending"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="pt-1">
+                      <p className="text-slate-500 font-medium">Mention Issue</p>
+                      <p className="text-slate-700">{ticket.mentionIssue || "N/A"}</p>
+                    </div>
+
+                    {ticket.remarks && (
+                      <div className="bg-slate-50 p-2 rounded-lg text-slate-600 mt-1">
+                        <p className="text-slate-500 font-medium text-[10px]">Remarks</p>
+                        <p className="text-[11px] italic">{ticket.remarks}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            }
+          }}
           renderRow={(ticket) => {
             if (activeTab === 'pending') {
               return (

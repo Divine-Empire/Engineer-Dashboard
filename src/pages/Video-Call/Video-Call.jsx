@@ -329,12 +329,12 @@ export default function VideoCall() {
         </div>
 
         {/* Filters and Search Bar */}
-        <div className="flex items-stretch sm:items-center gap-3">
+        <div className="grid grid-cols-2 md:flex md:items-center gap-3 w-full md:w-auto">
           {/* Category Filter */}
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="block text-xs bg-slate-50 border border-slate-200 rounded-lg p-1.5 text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 cursor-pointer h-9"
+            className="block text-xs bg-slate-50 border border-slate-200 rounded-lg p-1.5 text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 cursor-pointer h-9 w-full md:w-auto"
           >
             <option value="all">All Categories</option>
             {uniqueCategories.map(cat => (
@@ -346,7 +346,7 @@ export default function VideoCall() {
           <select
             value={selectedLocation}
             onChange={(e) => setSelectedLocation(e.target.value)}
-            className="block text-xs bg-slate-50 border border-slate-200 rounded-lg p-1.5 text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 cursor-pointer h-9"
+            className="block text-xs bg-slate-50 border border-slate-200 rounded-lg p-1.5 text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 cursor-pointer h-9 w-full md:w-auto"
           >
             <option value="all">All Locations</option>
             {uniqueLocations.map(loc => (
@@ -355,7 +355,7 @@ export default function VideoCall() {
           </select>
 
           {/* Search Bar */}
-          <div className="relative w-full sm:w-60">
+          <div className="relative w-full md:w-60">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
             <input
               type="text"
@@ -367,11 +367,11 @@ export default function VideoCall() {
           </div>
 
           {/* Columns Dropdown */}
-          <div className="relative columns-dropdown-container">
+          <div className="relative columns-dropdown-container w-full md:w-auto">
             <button
               type="button"
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-slate-50/50 hover:bg-slate-100/75 border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-all font-bold h-9 cursor-pointer shadow-sm select-none"
+              className="flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs bg-slate-50/50 hover:bg-slate-100/75 border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-all font-bold h-9 cursor-pointer shadow-sm select-none w-full md:w-auto"
             >
               <SlidersHorizontal className="h-3.5 w-3.5 text-slate-500" />
               <span>Columns</span>
@@ -418,6 +418,133 @@ export default function VideoCall() {
               <p>Loading...</p>
             </div>
           </> : "No entries found in this folder."}
+          renderCard={(ticket) => {
+            const isPending = activeTab === 'pending';
+            const statusBorder = isPending ? "border-l-blue-500" : "border-l-emerald-500";
+            return (
+              <div key={ticket.id} className={`bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-3 relative border-l-4 ${statusBorder}`}>
+                {/* Top Right Action Button or Status */}
+                <div className="absolute top-4 right-4">
+                  {isPending ? (
+                    <button
+                      onClick={() => setSelectedSale(ticket)}
+                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm"
+                    >
+                      Solution
+                    </button>
+                  ) : (
+                    <span className="text-[10px] uppercase font-bold text-emerald-600 bg-emerald-50 border border-emerald-250 py-1 px-2.5 rounded-lg">
+                      Solved
+                    </span>
+                  )}
+                </div>
+
+                {/* Header / Info */}
+                <div className="pr-24">
+                  {activeColumns.includes('Ticket-ID') && (
+                    <span className="text-[10px] font-mono font-bold bg-slate-100 px-1.5 py-0.5 rounded text-slate-700">
+                      {ticket.ticketId}
+                    </span>
+                  )}
+                  {activeColumns.includes('Date') && (
+                    <p className="text-[11px] text-slate-500 mt-1">
+                      {formatDate(ticket.timeStemp)}
+                    </p>
+                  )}
+                </div>
+
+                <div className="pt-2 border-t border-slate-100 space-y-2 text-xs">
+                  <div className="grid grid-cols-2 gap-3">
+                    {activeColumns.includes('Client Name') && (
+                      <div>
+                        <p className="text-slate-500 font-medium">Client Name</p>
+                        <p className="text-slate-800 font-semibold">{ticket.clientName || "N/A"}</p>
+                      </div>
+                    )}
+                    {activeColumns.includes('Company Name') && (
+                      <div>
+                        <p className="text-slate-500 font-medium">Company Name</p>
+                        <p className="text-slate-800 font-semibold">{ticket.companyName || "N/A"}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 pt-1">
+                    {activeColumns.includes('Phone Number') && (
+                      <div>
+                        <p className="text-slate-500 font-medium">Phone Number</p>
+                        <p className="text-slate-800">{ticket.phoneNumber || "N/A"}</p>
+                      </div>
+                    )}
+                    {activeColumns.includes('Machine Name') && (
+                      <div>
+                        <p className="text-slate-500 font-medium">Machine Name</p>
+                        <p className="text-slate-800">{ticket.machineName || "N/A"}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 pt-1">
+                    {activeColumns.includes('Call Time') && (
+                      <div>
+                        <p className="text-slate-500 font-medium">Call Time</p>
+                        <p className="text-slate-800">{ticket.videoCallTime || "N/A"}</p>
+                      </div>
+                    )}
+                    {activeColumns.includes('Service Location') && (
+                      <div>
+                        <p className="text-slate-500 font-medium">Service Location</p>
+                        <p className="text-slate-800">{ticket.serviceLocation || "N/A"}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 pt-1">
+                    {activeColumns.includes('Category') && (
+                      <div>
+                        <p className="text-slate-500 font-medium">Category</p>
+                        <p className="text-slate-800">{ticket.category || "N/A"}</p>
+                      </div>
+                    )}
+                    {activeColumns.includes('Client Type') && (
+                      <div>
+                        <p className="text-slate-500 font-medium">Client Type</p>
+                        <p className="text-slate-800">{ticket.clientType || "N/A"}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {activeColumns.includes('Mention Issue') && ticket.mentionIssue && (
+                    <div className="pt-1">
+                      <p className="text-slate-500 font-medium">Mention Issue</p>
+                      <p className="text-slate-700">{ticket.mentionIssue}</p>
+                    </div>
+                  )}
+
+                  {activeColumns.includes('GST Address') && ticket.gstAddress && (
+                    <div className="pt-1 bg-slate-50 p-2 rounded-lg">
+                      <p className="text-slate-500 font-medium text-[10px]">GST Address</p>
+                      <p className="text-[11px] text-slate-700">{ticket.gstAddress}</p>
+                    </div>
+                  )}
+
+                  {activeColumns.includes('Site Address') && ticket.siteAddress && (
+                    <div className="pt-1 bg-slate-50 p-2 rounded-lg">
+                      <p className="text-slate-500 font-medium text-[10px]">Site Address</p>
+                      <p className="text-[11px] text-slate-700">{ticket.siteAddress}</p>
+                    </div>
+                  )}
+
+                  {activeColumns.includes('GST No.') && ticket.gstNo && (
+                    <div className="pt-1">
+                      <p className="text-slate-500 font-medium">GST No.</p>
+                      <p className="text-slate-800 font-mono">{ticket.gstNo}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          }}
           renderRow={(ticket) => (
             <tr key={ticket.id} className="hover:bg-indigo-50/30 transition-colors">
               <td className="px-5 py-3.5">

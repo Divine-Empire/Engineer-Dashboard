@@ -407,6 +407,189 @@ export default function MaterialTesting() {
               <p>Loading...</p>
             </div>
           </> : "No entries found in this folder."}
+          renderCard={(record) => {
+            if (activeTab === 'pending') {
+              return (
+                <div key={record.id} className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-3 relative border-l-4 border-l-blue-500">
+                  {/* Top Right Action Button */}
+                  <div className="absolute top-4 right-4">
+                    <button
+                      onClick={() => setSelectedSale(record)}
+                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm"
+                    >
+                      Perform QC
+                    </button>
+                  </div>
+
+                  {/* Header / Info */}
+                  <div className="pr-24">
+                    <h3 className="font-bold text-slate-800 text-sm">
+                      Indent: {record.data.indentNumber}
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Lift No: {record.data.liftNo || "N/A"}
+                    </p>
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-100 space-y-2">
+                    <div className="text-xs">
+                      <p className="text-slate-500 font-medium">Item Name</p>
+                      <p className="text-slate-800 font-semibold">{record.data.itemName}</p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 text-xs pt-1">
+                      <div>
+                        <p className="text-slate-500 font-medium">Planned Date</p>
+                        <p className="text-slate-800">{formatDate(record.data.plan7) || "N/A"}</p>
+                      </div>
+                      <div>
+                        <p className="text-slate-500 font-medium">Received Qty</p>
+                        <p className="text-slate-800 font-semibold">{record.data.receivedQty}</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2 text-xs pt-1">
+                      <div>
+                        <p className="text-slate-500 font-medium">Approved</p>
+                        <p className="text-emerald-600 font-bold">{record.data.totalApproved}</p>
+                      </div>
+                      <div>
+                        <p className="text-slate-500 font-medium">Rejected</p>
+                        <p className="text-rose-600 font-bold">{record.data.totalRejected}</p>
+                      </div>
+                      <div>
+                        <p className="text-slate-500 font-medium">Pending</p>
+                        <p className="text-slate-800 font-bold">{record.data.pendingQty}</p>
+                      </div>
+                    </div>
+
+                    {(record.data.damageQty > 0 || record.data.damageReason) && (
+                      <div className="bg-slate-50 p-2 rounded-lg text-xs grid grid-cols-2 gap-2 mt-1">
+                        <div>
+                          <p className="text-slate-500 font-medium">Damage Qty</p>
+                          <p className="text-slate-700 font-semibold">{record.data.damageQty}</p>
+                        </div>
+                        <div>
+                          <p className="text-slate-500 font-medium">Damage Reason</p>
+                          <p className="text-slate-700">{record.data.damageReason || "N/A"}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {record.data.damageImage && record.data.damageImage !== "-" && record.data.damageImage !== "" && (
+                      <div className="text-xs pt-1">
+                        <a
+                          href={record.data.damageImage}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:underline inline-flex items-center gap-1 font-semibold"
+                        >
+                          <FileText size={12} /> View Damage Image
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            } else {
+              // History Tab Card View
+              const statusBorder = record.data.workingCondition === "Passed"
+                ? "border-l-emerald-500"
+                : record.data.workingCondition === "Rejected"
+                  ? "border-l-rose-500"
+                  : "border-l-amber-500";
+
+              const hasDetails = (record.data.checklist && record.data.checklist !== "-") ||
+                                 (record.data.serialNo && record.data.serialNo !== "-") ||
+                                 (record.data.image && record.data.image !== "-");
+
+              return (
+                <div key={record.id} className={`bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-3 relative border-l-4 ${statusBorder}`}>
+                  {/* Top Right Detail Eye Button */}
+                  {hasDetails && (
+                    <div className="absolute top-4 right-4">
+                      <button
+                        onClick={() => { setSelectedHistoryRecord(record); setHistoryDialogOpen(true); }}
+                        className="p-2 text-blue-600 hover:text-blue-800 rounded-full hover:bg-blue-50 transition-all"
+                        title="View Details"
+                      >
+                        <Eye size={16} />
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="pr-12">
+                    <h3 className="font-bold text-slate-800 text-sm">
+                      Indent: {record.data.indentNumber}
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Lift No: {record.data.liftNo || "N/A"}
+                    </p>
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-100 space-y-2">
+                    <div className="grid grid-cols-2 gap-3 text-xs">
+                      <div>
+                        <p className="text-slate-500 font-medium">QC Date</p>
+                        <p className="text-slate-800">{formatDate(record.data.qcDate) || "N/A"}</p>
+                      </div>
+                      <div>
+                        <p className="text-slate-500 font-medium">Checked By</p>
+                        <p className="text-slate-800">{record.data.qcBy || "N/A"}</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 text-xs pt-1">
+                      <div>
+                        <p className="text-slate-500 font-medium">Approved Qty</p>
+                        <p className="text-emerald-600 font-semibold">{record.data.approvedQty}</p>
+                      </div>
+                      <div>
+                        <p className="text-slate-500 font-medium">Status</p>
+                        <span className={`inline-block px-2 py-0.5 rounded-full font-semibold border text-[10px] ${
+                          record.data.workingCondition === "Passed"
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                            : record.data.workingCondition === "Rejected"
+                              ? "bg-rose-50 text-rose-700 border-rose-200"
+                              : "bg-amber-50 text-amber-700 border-amber-100"
+                        }`}>
+                          {record.data.workingCondition}
+                        </span>
+                      </div>
+                    </div>
+
+                    {(record.data.rejectedQty > 0 || record.data.rejectType || record.data.partName) && (
+                      <div className="bg-rose-50/50 p-2 rounded-lg text-xs space-y-1 mt-1 border border-rose-100/50">
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <p className="text-rose-500 font-medium">Rejected Qty</p>
+                            <p className="text-rose-700 font-bold">{record.data.rejectedQty || 0}</p>
+                          </div>
+                          <div>
+                            <p className="text-rose-500 font-medium">Reject Type</p>
+                            <p className="text-rose-700">{record.data.rejectType || "N/A"}</p>
+                          </div>
+                        </div>
+                        {record.data.partName && (
+                          <div>
+                            <p className="text-rose-500 font-medium">Part Name</p>
+                            <p className="text-rose-700">{record.data.partName}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {record.data.remarks && (
+                      <div className="text-xs pt-1">
+                        <p className="text-slate-500 font-medium">Remarks</p>
+                        <p className="text-slate-700 italic">{record.data.remarks}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            }
+          }}
           renderRow={(record) => {
             if (activeTab === 'pending') {
               return (

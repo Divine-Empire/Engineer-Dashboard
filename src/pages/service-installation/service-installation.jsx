@@ -253,6 +253,151 @@ export default function ServiceInstallation() {
               </div>
             ) : "No entries found."
           }
+          renderCard={(item) => {
+            const isSelected = selectedIds.has(item.id);
+            if (activeTab === 'pending') {
+              return (
+                <div key={item.id} className={`bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-3 relative border-l-4 border-l-blue-500 transition-all ${isSelected ? 'bg-indigo-50/10' : ''}`}>
+                  {/* Top Left Header with Checkbox and SI No */}
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => handleSelectRow(item.id)}
+                      className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4 cursor-pointer"
+                    />
+                    <span className="text-[10px] font-mono font-bold bg-slate-100 px-1.5 py-0.5 rounded text-slate-700">
+                      {item.siNo}
+                    </span>
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-100 space-y-2 text-xs">
+                    <div>
+                      <p className="text-slate-500 font-medium">Company Name</p>
+                      <p className="text-slate-800 font-semibold">{item.companyName || "N/A"}</p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 pt-1">
+                      <div>
+                        <p className="text-slate-500 font-medium">Contact Person</p>
+                        <p className="text-slate-800">{item.contactPerson || "N/A"}</p>
+                      </div>
+                      <div>
+                        <p className="text-slate-500 font-medium">Contact No.</p>
+                        <p className="text-slate-800 font-mono">{item.contactNo || "N/A"}</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 pt-1">
+                      <div>
+                        <p className="text-slate-500 font-medium">Planned Date</p>
+                        <p className="text-slate-800">{formatDate(item.planned) || "N/A"}</p>
+                      </div>
+                      <div>
+                        <p className="text-slate-500 font-medium">Invoice No</p>
+                        <p className="text-slate-800">{item.invoiceNo || "N/A"}</p>
+                      </div>
+                    </div>
+
+                    <div className="pt-1 bg-slate-50 p-2 rounded-lg space-y-1">
+                      <div>
+                        <p className="text-slate-500 font-medium text-[10px]">Item Name</p>
+                        <p className="text-[11px] text-slate-850 font-semibold">{item.itemName || "N/A"}</p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-[11px]">
+                        <div>
+                          <p className="text-slate-500 font-medium text-[10px]">Qty</p>
+                          <p className="text-slate-700">{item.qty || "N/A"}</p>
+                        </div>
+                        <div>
+                          <p className="text-slate-500 font-medium text-[10px]">Serial</p>
+                          <p className="text-slate-700 font-mono">{item.serial || "N/A"}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {item.remarks && (
+                      <div className="text-[11px] text-slate-500 italic pt-1">
+                        <p className="text-slate-400 font-medium text-[10px]">Remarks</p>
+                        <p>{item.remarks}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            } else {
+              return (
+                <div key={item.id} className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-3 relative border-l-4 border-l-emerald-500">
+                  {/* Top Left Header with SI No */}
+                  <div>
+                    <span className="text-[10px] font-mono font-bold bg-slate-100 px-1.5 py-0.5 rounded text-slate-700">
+                      {item.siNo}
+                    </span>
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-100 space-y-2 text-xs">
+                    <div>
+                      <p className="text-slate-500 font-medium">Company Name</p>
+                      <p className="text-slate-800 font-semibold">{item.companyName || "N/A"}</p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 pt-1">
+                      <div>
+                        <p className="text-slate-500 font-medium">Contact Person</p>
+                        <p className="text-slate-800">{item.contactPerson || "N/A"}</p>
+                      </div>
+                      <div>
+                        <p className="text-slate-500 font-medium">Contact No.</p>
+                        <p className="text-slate-800 font-mono">{item.contactNo || "N/A"}</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 pt-1">
+                      <div>
+                        <p className="text-slate-500 font-medium">Planned Date</p>
+                        <p className="text-slate-800">{formatDate(item.planned) || "N/A"}</p>
+                      </div>
+                      <div>
+                        <p className="text-slate-500 font-medium">Actual Date</p>
+                        <p className="text-slate-800">{formatDate(item.actual) || "N/A"}</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 pt-1">
+                      <div>
+                        <p className="text-slate-500 font-medium">Invoice No</p>
+                        <p className="text-slate-800">{item.invoiceNo || "N/A"}</p>
+                      </div>
+                    </div>
+
+                    <div className="pt-1 bg-slate-50 p-2 rounded-lg space-y-1">
+                      <div>
+                        <p className="text-slate-500 font-medium text-[10px]">Item Name</p>
+                        <p className="text-[11px] text-slate-850 font-semibold">{item.itemName || "N/A"}</p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-[11px]">
+                        <div>
+                          <p className="text-slate-500 font-medium text-[10px]">Qty</p>
+                          <p className="text-slate-700">{item.qty || "N/A"}</p>
+                        </div>
+                        <div>
+                          <p className="text-slate-500 font-medium text-[10px]">Serial</p>
+                          <p className="text-slate-700 font-mono">{item.serial || "N/A"}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {item.remarks && (
+                      <div className="text-[11px] text-slate-500 italic pt-1">
+                        <p className="text-slate-400 font-medium text-[10px]">Remarks</p>
+                        <p>{item.remarks}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            }
+          }}
           renderRow={(item) => {
             const isSelected = selectedIds.has(item.id);
             if (activeTab === 'pending') {

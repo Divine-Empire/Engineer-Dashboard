@@ -1,6 +1,6 @@
 import salesMock from '../mock/sales.json';
 
-const SALES_STORAGE_KEY = 'payment_system_sales';
+const SALES_STORAGE_KEY = 'engineer_dashboard_sales';
 
 export const salesService = {
   initializeSales: () => {

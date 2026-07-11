@@ -69,13 +69,16 @@ export default function SiteVisitPlan() {
           CREName: row[127] || "",
           expectedCompletionDate: row[149] || "",
           expectedCompletionTime: row[150] || "",
+          planned8: row[79] || "",
+          actual8: row[80] || "",
+          engineerNameEI: String(row[138] || "").trim(),
         }));
 
-        const history = allData.filter(
-          (item) => item.planned5 !== "" && item.actual5 !== ""
+        const pending = allData.filter(
+          (item) => item.planned8 !== "" && item.actual8 === ""
         );
 
-        setHistoryData(history);
+        setHistoryData(pending);
       }
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -115,7 +118,7 @@ export default function SiteVisitPlan() {
   const filteredHistoryData = user?.role === "ENGINEER"
     ? filteredHistoryDataa.filter(
         (item) =>
-          String(item.engineerAssign || "").trim().toLowerCase() ===
+          String(item.engineerNameEI || "").trim().toLowerCase() ===
           String(user.name || "").trim().toLowerCase()
       )
     : filteredHistoryDataa;
@@ -125,8 +128,8 @@ export default function SiteVisitPlan() {
       <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-indigo-50">
         <CardHeader className="bg-gradient-to-r from-blue-50/50 to-indigo-50/50 rounded-t-lg border-b border-blue-100 px-6 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
           <div>
-            <h2 className="text-xl font-bold text-slate-800 tracking-tight">Site Visit History</h2>
-            <p className="text-xs text-slate-500 mt-1">Showing all completed site visit records ({filteredHistoryData.length})</p>
+            <h2 className="text-xl font-bold text-slate-800 tracking-tight">Planned Site Visits</h2>
+            <p className="text-xs text-slate-500 mt-1">Showing all planned site visit records ({filteredHistoryData.length})</p>
           </div>
 
           {/* Right Side: Search Input */}
@@ -192,7 +195,7 @@ export default function SiteVisitPlan() {
                             </div>
                           ) : (
                             <h1 className="text-blue-700">
-                              No site visit plan history found.
+                              No planned site visits found.
                             </h1>
                           )}
                         </td>
@@ -230,7 +233,7 @@ export default function SiteVisitPlan() {
                             {ticket.machineName || ""}
                           </td>
                           <td className="px-4 py-3 text-blue-900">
-                            {ticket.engineerAssign || ""}
+                            {ticket.engineerNameEI || ""}
                           </td>
                         </tr>
                       ))
@@ -251,7 +254,7 @@ export default function SiteVisitPlan() {
                         </div>
                       ) : (
                         <h1 className="text-blue-700">
-                          No site visit plan history found.
+                          No pending TADA site visits found.
                         </h1>
                       )}
                     </div>
@@ -300,7 +303,7 @@ export default function SiteVisitPlan() {
                                 Engineer
                               </p>
                               <p className="text-blue-900">
-                                {ticket.engineerAssign || "N/A"}
+                                {ticket.engineerNameEI || "N/A"}
                               </p>
                             </div>
                             <div>

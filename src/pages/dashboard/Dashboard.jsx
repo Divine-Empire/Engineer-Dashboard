@@ -70,6 +70,15 @@ const getEngineerColor = (name) => {
   return PREMIUM_COLORS[Math.abs(hash) % PREMIUM_COLORS.length];
 };
 
+const getValueByColIndex = (row, colIndex) => {
+  if (!Array.isArray(row)) return "";
+  if (row.length > 0 && Array.isArray(row[0])) {
+    const cell = row.find(c => Array.isArray(c) && c[0] === colIndex);
+    return cell !== undefined && cell !== null ? cell[1] : "";
+  }
+  return row[colIndex] !== undefined && row[colIndex] !== null ? row[colIndex] : "";
+};
+
 const IST_FORMATTER = new Intl.DateTimeFormat("en-US", {
   timeZone: "Asia/Kolkata",
   year: "numeric",
@@ -271,11 +280,11 @@ export default function Dashboard() {
       const approvedMap = new Map();
       if (partialJson.success && Array.isArray(partialJson.data)) {
         partialJson.data.slice(6)
-          .filter((r) => r[1] && String(r[1]).trim() !== "")
+          .filter((r) => getValueByColIndex(r, 1) && String(getValueByColIndex(r, 1)).trim() !== "")
           .forEach((r) => {
-            const liftNo = String(r[2] || "").trim().toLowerCase();
+            const liftNo = String(getValueByColIndex(r, 2) || "").trim().toLowerCase();
             if (!liftNo) return;
-            approvedMap.set(liftNo, (approvedMap.get(liftNo) || 0) + (parseFloat(r[6] || "0") || 0));
+            approvedMap.set(liftNo, (approvedMap.get(liftNo) || 0) + (parseFloat(getValueByColIndex(r, 6) || "0") || 0));
           });
       }
 
@@ -284,10 +293,10 @@ export default function Dashboard() {
       let mtRows = [];
       if (materialJson.success && Array.isArray(materialJson.data)) {
         mtRows = materialJson.data.slice(7)
-          .filter(row => row[1] && String(row[1]).trim() !== "")
+          .filter(row => getValueByColIndex(row, 1) && String(getValueByColIndex(row, 1)).trim() !== "")
           .map((row, index) => {
-            const plan7Str = String(row[61] || "").trim();
-            const completionStr = String(row[62] || "").trim();
+            const plan7Str = String(getValueByColIndex(row, 61) || "").trim();
+            const completionStr = String(getValueByColIndex(row, 62) || "").trim();
             let status = "not_ready";
             if (plan7Str && plan7Str !== "-") {
               if (completionStr && completionStr !== "-") {
@@ -296,15 +305,15 @@ export default function Dashboard() {
                 status = "pending";
               }
             }
-            const liftNo = String(row[2] || "").trim();
+            const liftNo = String(getValueByColIndex(row, 2) || "").trim();
             const totalApproved = approvedMap.get(liftNo.toLowerCase()) || 0;
 
             return {
               id: index + 1,
-              indentNumber: String(row[1] || "").trim(),
+              indentNumber: String(getValueByColIndex(row, 1) || "").trim(),
               liftNo,
-              itemName: String(row[7] || "").trim(),
-              receivedQty: row[25] || "0",
+              itemName: String(getValueByColIndex(row, 7) || "").trim(),
+              receivedQty: getValueByColIndex(row, 25) || "0",
               approvedQty: totalApproved,
               status,
             };
@@ -637,6 +646,7 @@ export default function Dashboard() {
     videoCall: "",
     newCategory: "",
     videoCallTime: "",
+    engineerAssign: "",
   });
 
   const [newFormSelectedMachines, setNewFormSelectedMachines] = useState([]);
@@ -644,6 +654,12 @@ export default function Dashboard() {
   const [showMachineDropdown, setShowMachineDropdown] = useState(false);
 
   const [machineSearchQuery, setMachineSearchQuery] = useState("");
+
+  const [newFormSelectedCategories, setNewFormSelectedCategories] = useState([]);
+
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+
+  const [categorySearchQuery, setCategorySearchQuery] = useState("");
 
   const [isEditMode, setIsEditMode] = useState(false);
 
@@ -677,6 +693,7 @@ export default function Dashboard() {
     const handleClickOutside = (event) => {
       if (!event.target.closest(".dropdown-container")) {
         setShowMachineDropdown(false);
+        setShowCategoryDropdown(false);
       }
     };
 
@@ -762,6 +779,7 @@ export default function Dashboard() {
       videoCall: ticket.videoCall || "",
       newCategory: ticket.newCategory || "",
       videoCallTime: ticket.videoCallTime || "",
+      engineerAssign: ticket.engineerAssign || "",
     });
 
     const machines = ticket.machineName
@@ -772,6 +790,15 @@ export default function Dashboard() {
       : [];
 
     setNewFormSelectedMachines(machines);
+
+    const categories = ticket.newCategory
+      ? ticket.newCategory
+        .split(",")
+        .map((c) => c.trim())
+        .filter(Boolean)
+      : [];
+
+    setNewFormSelectedCategories(categories);
 
     setShowNewEnquiryForm(true);
   };
@@ -987,7 +1014,7 @@ export default function Dashboard() {
           challanCopy: row[26] || "",
           machinePhoto: row[27] || "",
           videoCall: row[28] || "",
-          engineerAssign: row[28] || "",
+          engineerAssign: row[156] || "",
           CREName: row[127] || "",
           planned1: row[9] || "",
           actual1: row[10] || "",
@@ -1156,13 +1183,19 @@ export default function Dashboard() {
       alert("Error: Enquiry-Type is required");
       return;
     }
-    if (!newEnquiryData.newCategory) {
+    if (newFormSelectedCategories.length === 0) {
       alert("Error: Category is required");
       return;
     }
-    if (newEnquiryData.videoCall === "Yes" && !newEnquiryData.videoCallTime) {
-      alert("Error: Video-Call Time is required");
-      return;
+    if (newEnquiryData.videoCall === "Yes") {
+      if (!newEnquiryData.videoCallTime) {
+        alert("Error: Video-Call Time is required");
+        return;
+      }
+      if (!newEnquiryData.engineerAssign) {
+        alert("Error: Engineer-Assigned is required");
+        return;
+      }
     }
     if (!newEnquiryData.callType) {
       alert("Error: Call Type is required");
@@ -1217,8 +1250,9 @@ export default function Dashboard() {
           AA: isLocWarehouse ? (newEnquiryData.challanCopy || "") : "",
           AB: isLocWarehouse ? (newEnquiryData.machinePhoto || "") : "",
           AC: newEnquiryData.videoCall || "",
-          EW: newEnquiryData.newCategory || "",
+          EW: newFormSelectedCategories.join(", "),
           EX: newEnquiryData.videoCallTime || "",
+          FA: newEnquiryData.engineerAssign || "",
         };
 
         const response = await fetch(sheet_url, {
@@ -1259,9 +1293,11 @@ export default function Dashboard() {
             machinePhoto: "",
             videoCall: "",
             newCategory: "",
-            videoCallTime: ""
+            videoCallTime: "",
+            engineerAssign: ""
           });
           setNewFormSelectedMachines([]);
+          setNewFormSelectedCategories([]);
           setIsEditMode(false);
           setEditingTicket(null);
           fetchData();
@@ -1294,12 +1330,13 @@ export default function Dashboard() {
         rowData[27] = isLocWarehouse ? (newEnquiryData.machinePhoto || "") : "";
         rowData[28] = newEnquiryData.videoCall || "";
 
-        // EW is index 152, EX is index 153
-        rowData[152] = newEnquiryData.newCategory || "";
+        // EW is index 152, EX is index 153, FA is index 156
+        rowData[152] = newFormSelectedCategories.join(", ");
         rowData[153] = newEnquiryData.videoCallTime || "";
+        rowData[156] = newEnquiryData.engineerAssign || "";
 
-        // Generate and assign OTP to column AJ (index 35)
-        rowData[35] = generateSixDigitOTP();
+        // Generate and assign OTP to column AJ (index 35) only when Video-Call is "Yes"
+        rowData[35] = newEnquiryData.videoCall === "Yes" ? generateSixDigitOTP() : "";
 
         rowData[117] = "No";
         rowData[127] = userName || "";
@@ -1340,9 +1377,11 @@ export default function Dashboard() {
             machinePhoto: "",
             videoCall: "",
             newCategory: "",
-            videoCallTime: ""
+            videoCallTime: "",
+            engineerAssign: ""
           });
           setNewFormSelectedMachines([]);
+          setNewFormSelectedCategories([]);
           fetchData();
         } else {
           throw new Error(result.error || "Failed to create enquiry");
@@ -1388,9 +1427,14 @@ export default function Dashboard() {
                 serviceLocation: "",
                 challanCopy: "",
                 machinePhoto: "",
+                videoCall: "",
+                newCategory: "",
+                videoCallTime: "",
+                engineerAssign: "",
                 serialNumOfMachines: ""
               });
               setNewFormSelectedMachines([]);
+              setNewFormSelectedCategories([]);
               setShowNewEnquiryForm(true);
             }}
             className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all"
@@ -1462,31 +1506,73 @@ export default function Dashboard() {
           </div>
 
           <div className="flex-1 min-h-0 flex flex-col justify-between">
-            <TableWrapper
-              headers={['Ticket-ID', 'Date', 'Client', 'Category', 'Phone Number', 'Status']}
-              data={filteredTickets}
-              loading={statsLoading}
-              emptyMessage="No tickets found."
-              renderRow={(ticket) => (
-                <tr key={ticket.id} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-5 py-3">
-                    <span className="text-xs font-mono font-bold bg-slate-100 px-1.5 py-0.5 rounded text-slate-700">{ticket.ticketId}</span>
-                  </td>
-                  <td className="px-5 py-3 text-xs text-slate-500 whitespace-nowrap">{formatDate(ticket.timeStemp)}</td>
-                  <td className="px-5 py-3 text-xs font-semibold text-slate-850 truncate max-w-[150px]" title={ticket.clientName || ticket.companyName}>{ticket.clientName || ticket.companyName}</td>
-                  <td className="px-5 py-3 text-xs text-slate-650 truncate max-w-[120px]" title={ticket.category}>{ticket.category}</td>
-                  <td className="px-5 py-3 text-xs text-slate-600 whitespace-nowrap">{ticket.phoneNumber || "-"}</td>
-                  <td className="px-5 py-3">
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${ticket.actual2 === ""
-                      ? "bg-rose-50 text-rose-700 border-rose-100"
-                      : "bg-emerald-50 text-emerald-700 border-emerald-100"
-                      }`}>
-                      {ticket.actual2 === "" ? "Pending" : "Solved"}
-                    </span>
-                  </td>
-                </tr>
+            <div className="hidden sm:flex flex-col flex-1 min-h-0">
+              <TableWrapper
+                headers={['Ticket-ID', 'Date', 'Client', 'Category', 'Phone Number', 'Status']}
+                data={filteredTickets}
+                loading={statsLoading}
+                emptyMessage="No tickets found."
+                renderRow={(ticket) => (
+                  <tr key={ticket.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-5 py-3">
+                      <span className="text-xs font-mono font-bold bg-slate-100 px-1.5 py-0.5 rounded text-slate-700">{ticket.ticketId}</span>
+                    </td>
+                    <td className="px-5 py-3 text-xs text-slate-500 whitespace-nowrap">{formatDate(ticket.timeStemp)}</td>
+                    <td className="px-5 py-3 text-xs font-semibold text-slate-850 truncate max-w-[150px]" title={ticket.clientName || ticket.companyName}>{ticket.clientName || ticket.companyName}</td>
+                    <td className="px-5 py-3 text-xs text-slate-650 truncate max-w-[120px]" title={ticket.category}>{ticket.category}</td>
+                    <td className="px-5 py-3 text-xs text-slate-600 whitespace-nowrap">{ticket.phoneNumber || "-"}</td>
+                    <td className="px-5 py-3">
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${ticket.actual2 === ""
+                        ? "bg-rose-50 text-rose-700 border-rose-100"
+                        : "bg-emerald-50 text-emerald-700 border-emerald-100"
+                        }`}>
+                        {ticket.actual2 === "" ? "Pending" : "Solved"}
+                      </span>
+                    </td>
+                  </tr>
+                )}
+              />
+            </div>
+            {/* Mobile View */}
+            <div className="sm:hidden flex flex-col space-y-3 mt-1 overflow-y-auto max-h-[350px] pr-1">
+              {statsLoading ? (
+                <div className="flex justify-center py-8 text-indigo-600"><LoaderIcon className="animate-spin" /></div>
+              ) : filteredTickets.length === 0 ? (
+                <div className="text-center py-8 text-slate-400 text-sm">No tickets found.</div>
+              ) : (
+                filteredTickets.map((ticket) => (
+                  <div key={ticket.id} className="p-4 bg-slate-50 rounded-xl border border-slate-100 space-y-2">
+                    <div className="flex justify-between items-start">
+                      <span className="text-xs font-mono font-bold bg-white px-2 py-0.5 rounded text-slate-700 border border-slate-200">{ticket.ticketId}</span>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${ticket.actual2 === ""
+                        ? "bg-rose-50 text-rose-700 border-rose-100"
+                        : "bg-emerald-50 text-emerald-700 border-emerald-100"
+                        }`}>
+                        {ticket.actual2 === "" ? "Pending" : "Solved"}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-600">
+                      <div>
+                        <span className="text-slate-400 block">Date</span>
+                        <span className="font-semibold">{formatDate(ticket.timeStemp)}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block">Client</span>
+                        <span className="font-semibold block truncate" title={ticket.clientName || ticket.companyName}>{ticket.clientName || ticket.companyName}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block">Category</span>
+                        <span className="font-semibold block truncate">{ticket.category}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block">Phone</span>
+                        <span className="font-semibold">{ticket.phoneNumber || "-"}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))
               )}
-            />
+            </div>
           </div>
         </div>
 
@@ -1523,29 +1609,71 @@ export default function Dashboard() {
           </div>
 
           <div className="flex-1 min-h-0 flex flex-col justify-between">
-            <TableWrapper
-              headers={['Indent No.', 'Unit Tracking No.', 'Item', 'Total Qty', 'Approved Qty', 'Status']}
-              data={filteredQcChecks}
-              loading={statsLoading}
-              emptyMessage="No QC inspections found."
-              renderRow={(record) => (
-                <tr key={record.id} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-5 py-3 font-bold text-xs text-slate-700">{record.indentNumber}</td>
-                  <td className="px-5 py-3 text-xs text-slate-600">{record.liftNo}</td>
-                  <td className="px-5 py-3 text-xs font-semibold text-slate-850 truncate max-w-[180px]" title={record.itemName}>{record.itemName}</td>
-                  <td className="px-5 py-3 text-xs font-bold text-slate-700">{record.receivedQty}</td>
-                  <td className="px-5 py-3 text-xs font-bold text-emerald-600">{record.approvedQty}</td>
-                  <td className="px-5 py-3">
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${record.status === "pending"
-                      ? "bg-orange-50 text-orange-700 border-orange-100"
-                      : "bg-purple-50 text-purple-700 border-purple-100"
-                      }`}>
-                      {record.status === "pending" ? "Pending" : "Completed"}
-                    </span>
-                  </td>
-                </tr>
+            <div className="hidden sm:flex flex-col flex-1 min-h-0">
+              <TableWrapper
+                headers={['Indent No.', 'Unit Tracking No.', 'Item', 'Total Qty', 'Approved Qty', 'Status']}
+                data={filteredQcChecks}
+                loading={statsLoading}
+                emptyMessage="No QC inspections found."
+                renderRow={(record) => (
+                  <tr key={record.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-5 py-3 font-bold text-xs text-slate-700">{record.indentNumber}</td>
+                    <td className="px-5 py-3 text-xs text-slate-600">{record.liftNo}</td>
+                    <td className="px-5 py-3 text-xs font-semibold text-slate-850 truncate max-w-[180px]" title={record.itemName}>{record.itemName}</td>
+                    <td className="px-5 py-3 text-xs font-bold text-slate-700">{record.receivedQty}</td>
+                    <td className="px-5 py-3 text-xs font-bold text-emerald-600">{record.approvedQty}</td>
+                    <td className="px-5 py-3">
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${record.status === "pending"
+                        ? "bg-orange-50 text-orange-700 border-orange-100"
+                        : "bg-purple-50 text-purple-700 border-purple-100"
+                        }`}>
+                        {record.status === "pending" ? "Pending" : "Completed"}
+                      </span>
+                    </td>
+                  </tr>
+                )}
+              />
+            </div>
+            {/* Mobile View */}
+            <div className="sm:hidden flex flex-col space-y-3 mt-1 overflow-y-auto max-h-[350px] pr-1">
+              {statsLoading ? (
+                <div className="flex justify-center py-8 text-indigo-600"><LoaderIcon className="animate-spin" /></div>
+              ) : filteredQcChecks.length === 0 ? (
+                <div className="text-center py-8 text-slate-400 text-sm">No QC inspections found.</div>
+              ) : (
+                filteredQcChecks.map((record) => (
+                  <div key={record.id} className="p-4 bg-slate-50 rounded-xl border border-slate-100 space-y-2">
+                    <div className="flex justify-between items-start">
+                      <span className="text-xs font-bold text-slate-700 bg-white px-2 py-0.5 rounded border border-slate-200">{record.indentNumber}</span>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${record.status === "pending"
+                        ? "bg-orange-50 text-orange-700 border-orange-100"
+                        : "bg-purple-50 text-purple-700 border-purple-100"
+                        }`}>
+                        {record.status === "pending" ? "Pending" : "Completed"}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-600">
+                      <div>
+                        <span className="text-slate-400 block">Unit Tracking No.</span>
+                        <span className="font-semibold">{record.liftNo}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block">Item</span>
+                        <span className="font-semibold block truncate" title={record.itemName}>{record.itemName}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block">Total Qty</span>
+                        <span className="font-semibold">{record.receivedQty}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block">Approved Qty</span>
+                        <span className="font-semibold text-emerald-600">{record.approvedQty}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))
               )}
-            />
+            </div>
           </div>
         </div>
       </div>
@@ -1796,29 +1924,103 @@ export default function Dashboard() {
                   </Select>
                 </div>
 
-                <div className="space-y-1">
+                <div className="space-y-1 relative dropdown-container">
                   <Label className="text-sm">Category *</Label>
-                  <Select
-                    onValueChange={(value) => setNewEnquiryData(prev => ({ ...prev, newCategory: value }))}
-                    value={newEnquiryData.newCategory}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Category" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white border border-gray-300 rounded-md shadow-lg">
-                      {[...new Set(enquiryMasterData[0]?.["Category"] || [])]
-                        .filter(Boolean)
-                        .map((option) => (
-                          <SelectItem key={option} value={option}>
-                            {option}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowCategoryDropdown(!showCategoryDropdown);
+                        setShowMachineDropdown(false);
+                      }}
+                      className="flex h-10 w-full items-center justify-between rounded-md border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <span className="text-gray-500">Select category(ies)</span>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="h-4 w-4 opacity-50"
+                      >
+                        <path d="m6 9 6 6 6-6" />
+                      </svg>
+                    </button>
+
+                    {showCategoryDropdown && (
+                      <div className="absolute left-0 right-0 z-50 mt-1 max-h-60 overflow-y-auto rounded-md border border-gray-200 bg-white p-1 shadow-lg">
+                        <div className="px-2 py-1 sticky top-0 bg-white z-10">
+                          <Input
+                            placeholder="Search category..."
+                            value={categorySearchQuery}
+                            onChange={(e) => setCategorySearchQuery(e.target.value)}
+                            className="h-8 text-xs border-gray-200"
+                          />
+                        </div>
+                        <div className="mt-1">
+                          {[...new Set(enquiryMasterData[0]?.["Category"] || [])]
+                            .filter(Boolean)
+                            .filter(option =>
+                              option.toLowerCase().includes(categorySearchQuery.toLowerCase())
+                            )
+                            .map((option) => (
+                              <button
+                                key={option}
+                                type="button"
+                                disabled={newFormSelectedCategories.includes(option)}
+                                onClick={() => {
+                                  if (!newFormSelectedCategories.includes(option)) {
+                                    setNewFormSelectedCategories(prev => [...prev, option]);
+                                  }
+                                  setCategorySearchQuery("");
+                                  setShowCategoryDropdown(false);
+                                }}
+                                className="flex w-full items-center rounded-sm px-2 py-1.5 text-sm hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed text-left"
+                              >
+                                {option}
+                              </button>
+                            ))}
+                          {[...new Set(enquiryMasterData[0]?.["Category"] || [])]
+                            .filter(Boolean)
+                            .filter(option =>
+                              option.toLowerCase().includes(categorySearchQuery.toLowerCase())
+                            ).length === 0 && (
+                            <p className="text-xs text-gray-500 text-center py-2">No category found</p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  {newFormSelectedCategories.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {newFormSelectedCategories.map((cat) => (
+                        <div
+                          key={cat}
+                          className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded flex items-center"
+                        >
+                          {cat}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setNewFormSelectedCategories(prev => prev.filter(c => c !== cat));
+                            }}
+                            className="ml-1 text-blue-600 hover:text-blue-800 font-bold"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
-              <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className={`md:col-span-2 grid grid-cols-1 ${newEnquiryData.videoCall === "Yes" ? "md:grid-cols-3" : "md:grid-cols-2"} gap-4`}>
                 <div className="space-y-1">
                   <Label className="text-sm">Video-Call</Label>
                   <Select
@@ -1836,15 +2038,37 @@ export default function Dashboard() {
                 </div>
 
                 {newEnquiryData.videoCall === "Yes" && (
-                  <div className="space-y-1 animate-in fade-in duration-300">
-                    <Label className="text-sm">Video-Call Time *</Label>
-                    <Input
-                      type="time"
-                      value={newEnquiryData.videoCallTime || ""}
-                      onChange={(e) => setNewEnquiryData(prev => ({ ...prev, videoCallTime: e.target.value }))}
-                      required
-                    />
-                  </div>
+                  <>
+                    <div className="space-y-1 animate-in fade-in duration-300">
+                      <Label className="text-sm">Video-Call Time *</Label>
+                      <Input
+                        type="time"
+                        value={newEnquiryData.videoCallTime || ""}
+                        onChange={(e) => setNewEnquiryData(prev => ({ ...prev, videoCallTime: e.target.value }))}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-1 animate-in fade-in duration-300">
+                      <Label className="text-sm">Engineer-Assigned *</Label>
+                      <Select
+                        onValueChange={(value) => setNewEnquiryData(prev => ({ ...prev, engineerAssign: value }))}
+                        value={newEnquiryData.engineerAssign || ""}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select Engineer" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                          {(enquiryMasterData[0]?.["Engineer Assign Name"] || [])
+                            .filter(Boolean)
+                            .map((name) => (
+                              <SelectItem key={name} value={name}>
+                                {name}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </>
                 )}
               </div>
 
@@ -1993,7 +2217,10 @@ export default function Dashboard() {
                 <div className="relative dropdown-container">
                   <button
                     type="button"
-                    onClick={() => setShowMachineDropdown(!showMachineDropdown)}
+                    onClick={() => {
+                      setShowMachineDropdown(!showMachineDropdown);
+                      setShowCategoryDropdown(false);
+                    }}
                     className="flex h-10 w-full items-center justify-between rounded-md border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <span className="text-gray-500">Select machine(s)</span>

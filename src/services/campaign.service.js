@@ -1,6 +1,6 @@
 import campaignsMock from '../mock/campaigns.json';
 
-const CAMPAIGNS_STORAGE_KEY = 'payment_system_campaigns';
+const CAMPAIGNS_STORAGE_KEY = 'engineer_dashboard_campaigns';
 
 export const campaignService = {
   initializeCampaigns: () => {

@@ -4,7 +4,7 @@ import { User, Lock, Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '../../store/authStore';
 import { getUsers } from '../../utils/storageManager';
-import botivateLogoB from '../../Assets/divine-logo.svg';
+import logo from '../../Assets/divine-logo.svg';
 
 const sheet_url = import.meta.env.VITE_SERVICE_SHEET_API;
 
@@ -92,14 +92,14 @@ const Login = () => {
           <div className="flex flex-col items-center space-y-6">
             <div className="w-28 h-28 rounded-full border-4 border-sky-400 flex items-center justify-center shadow-lg bg-transparent">
               <img
-                src={botivateLogoB}
-                alt="Botivate Logo"
+                src={logo}
+                alt="Logo"
                 className="w-24 h-24 object-contain"
               />
             </div>
             <div className="text-center space-y-2">
-              <h1 className="text-4xl font-bold text-gray-900">Payment</h1>
-              <p className="text-gray-600 text-base font-medium">System</p>
+              <h1 className="text-4xl font-bold text-gray-900">Divine Empire</h1>
+              <p className="text-gray-600 text-base font-medium">Engineer Dashboard</p>
             </div>
           </div>
 

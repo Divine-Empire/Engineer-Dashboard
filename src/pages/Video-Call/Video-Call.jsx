@@ -19,6 +19,7 @@ const INITIAL_COLUMNS = [
   'Phone Number',
   'Machine Name',
   'Mention Issue',
+  'Call Time',
 ];
 
 const ALL_COLUMNS = [
@@ -28,6 +29,7 @@ const ALL_COLUMNS = [
   'Phone Number',
   'Machine Name',
   'Mention Issue',
+  'Call Time',
   'Date',
   'Source of enquiry',
   'Call type',
@@ -53,6 +55,48 @@ const formatDateTime = (date) => {
   const seconds = String(d.getSeconds()).padStart(2, "0");
 
   return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+};
+
+const formatCallTime = (timeStr) => {
+  if (!timeStr) return "";
+  const str = String(timeStr).trim();
+
+  // If it's a full ISO format, e.g. "1899-12-30T14:30:00.000Z"
+  if (str.includes("T")) {
+    const timePart = str.split("T")[1];
+    const parts = timePart.split(":");
+    if (parts.length >= 2) {
+      return `${parts[0].padStart(2, "0")}:${parts[1].padStart(2, "0")}`;
+    }
+  }
+
+  // If it's in format "HH:MM:SS"
+  const parts = str.split(":");
+  if (parts.length >= 2) {
+    const hh = parts[0].trim().padStart(2, "0");
+    const mm = parts[1].trim().padStart(2, "0");
+    if (!isNaN(hh) && !isNaN(mm)) {
+      return `${hh}:${mm}`;
+    }
+  }
+
+  // Regex match for HH:MM with optional AM/PM
+  const match = str.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+  if (match) {
+    let hours = parseInt(match[1], 10);
+    const minutes = match[2];
+    const ampm = match[3];
+    if (ampm) {
+      if (ampm.toUpperCase() === "PM" && hours < 12) {
+        hours += 12;
+      } else if (ampm.toUpperCase() === "AM" && hours === 12) {
+        hours = 0;
+      }
+    }
+    return `${String(hours).padStart(2, "0")}:${minutes}`;
+  }
+
+  return str;
 };
 
 export default function VideoCall() {
@@ -137,6 +181,7 @@ export default function VideoCall() {
             state: String(row[26] || "").trim(),
             pinCode: String(row[27] || "").trim(),
             engineerAssign: String(row[130] || "").trim(),
+            engineerAssignFA: String(row[156] || "").trim(),
             serviceType: String(row[131] || "").trim(),
             serviceLocation: String(row[25] || "").trim(),
             uploadChallan: String(row[30] || "").trim(),
@@ -149,6 +194,7 @@ export default function VideoCall() {
             CREName: String(row[127] || "").trim(),
             remarks: String(row[128] || "").trim(),
             itemQty: String(row[129] || "").trim(),
+            videoCallTime: formatCallTime(String(row[153] || "").trim()),
           }))
           .filter(item => item.planned2 !== "");
 
@@ -237,7 +283,7 @@ export default function VideoCall() {
 
       // Role-based filtering
       if (role === "user" && ticket.CREName !== userName) return false;
-      if (role === "engineer" && ticket.engineerAssign !== userName) return false;
+      if (role === "engineer" && ticket.engineerAssignFA !== userName) return false;
 
       // Category filter
       if (selectedCategory !== 'all' && ticket.category !== selectedCategory) return false;
@@ -269,7 +315,7 @@ export default function VideoCall() {
               : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
               }`}
           >
-            Pending ({sales.filter(t => t.actual2 === "" && (role !== "user" || t.CREName === userName) && (role !== "engineer" || t.engineerAssign === userName)).length})
+            Pending ({sales.filter(t => t.actual2 === "" && (role !== "user" || t.CREName === userName) && (role !== "engineer" || t.engineerAssignFA === userName)).length})
           </button>
           <button
             onClick={() => { setActiveTab('history'); }}
@@ -278,7 +324,7 @@ export default function VideoCall() {
               : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
               }`}
           >
-            History ({sales.filter(t => t.actual2 !== "" && (role !== "user" || t.CREName === userName) && (role !== "engineer" || t.engineerAssign === userName)).length})
+            History ({sales.filter(t => t.actual2 !== "" && (role !== "user" || t.CREName === userName) && (role !== "engineer" || t.engineerAssignFA === userName)).length})
           </button>
         </div>
 
@@ -480,6 +526,12 @@ export default function VideoCall() {
                         {ticket.mentionIssue}
                       </td>
                     );
+                  case 'Call Time':
+                    return (
+                      <td key="Call Time" className="px-5 py-3.5 text-xs text-slate-600 whitespace-nowrap">
+                        {ticket.videoCallTime || "N/A"}
+                      </td>
+                    );
                   case 'Service Location':
                     return (
                       <td key="Service Location" className="px-5 py-3.5 text-xs text-slate-600">
@@ -534,7 +586,7 @@ function SolutionModal({ isOpen, onClose, sale, onSave, masterData }) {
       setIsCancelled(false);
       setCancelRemarks('');
       setVideoCallServicesSolve('');
-      setEngineerAssign(sale.engineerAssign || '');
+      setEngineerAssign(sale.engineerAssign || sale.engineerAssignFA || '');
       setServiceType(sale.serviceType || '');
       setOtpVerification('');
       setRemarks('');
